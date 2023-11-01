@@ -1,0 +1,64 @@
+---
+title: "finalgroupproject"
+author: "Tee Zhi Zhang"
+date: "2023-11-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Final Group Project
+
+### Group: Marcus Wan, Tan Xue Feng, Tee Zhi Zhang
+
+## Introduction of Data
+
+-   Price of HDB Resale Flat Sales: <https://beta.data.gov.sg/collections/189/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view>
+
+-   Price of HDB BTO Launches:
+
+    <https://beta.data.gov.sg/datasets/d_2d493bdcc1d9a44828b6e71cb095b88d/view> 
+
+## Data Cleaning and Preprocessing for Resale Flat Prices
+
+-   Remove street name, lease commence date, flat model (marcus)
+
+## Exploratory Data Analysis for Resale Flat Prices
+
+### Overall Time Series Analysis of Prices (marcus)
+
+### Distribution of Price by Flat Type (marcus)
+
+### Distribution of Price by Town (zz)
+
+-   Heat-map representation, over-time?
+
+### Distribution of Price by Remaining Lease Years (marcus)
+
+-   Predict the future price of HDB for Remaining lease years of less than 40 (or whatever the lowest remaining lease years is now)
+
+### Distribution of Price by Storey range of flat (marcus)
+
+\
+
+## Modelling and Prediction of future HDB Resale Prices (xf)
+
+-   Linear regression for single variables
+
+-   Linear regression for 2 variables
+
+-   Linear regression for all variables
+
+\
+
+## How BTO Buyers can maximise returns (KIV)
+
+-   Calculate returns based on:
+
+    -   Number of years after minimum MOP
+
+    -   Town
+
+    -   Room Type
