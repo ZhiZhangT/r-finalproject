@@ -21,9 +21,75 @@ knitr::opts_chunk$set(echo = TRUE)
 
     <https://beta.data.gov.sg/datasets/d_2d493bdcc1d9a44828b6e71cb095b88d/view> 
 
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
 ## Data Cleaning and Preprocessing for Resale Flat Prices
 
 -   Remove street name, lease commence date, flat model (marcus)
+
+Our data set is split into 4 different csv files which contain data for different time periods. Let us read the data examine the columns and data types.
+
+```{r}
+resale_data_19901999 <- read.csv('resale_19901999.csv', header = TRUE, sep = ',', encoding = 'UTF-8')
+resale_data_20002012 <- read.csv('resale_2000Feb2012.csv', header = TRUE, sep = ',', encoding = 'UTF-8')
+resale_data_20122014 <- read.csv('resale_Mar2012toDec2014.csv', header = TRUE, sep = ',', encoding = 'UTF-8')
+resale_data_2017 <- read.csv('resale_Jan2017onwards.csv', header = TRUE, sep = ',', encoding = 'UTF-8')
+
+resale_data_19901999
+resale_data_20002012
+resale_data_20122014
+resale_data_2017
+```
+
+Next, we notice that 3 of 4 dataframes have the same columns, we will try to merge these 3 data frames by stacking them on top vertically.
+
+```{r}
+resale_data_19902014 <- rbind(resale_data_19901999, resale_data_20002012, resale_data_20122014)
+
+resale_data_19902014
+summary(resale_data_19902014)
+```
+
+The last data frame has an extra column, which is the "**remaining_lease"** column. We can calculate this value for the rest of the data set, by calculating the number of years between the lease expiry date (by taking the lease_commencement date + 99, since all HDB flats have a 99 year lease) and the date of transaction.
+
+```{r}
+resale_data_19902014$remaining_lease <- resale_data_19902014$lease_commence_date + 99 - as.integer(substr(resale_data_19902014$month, start=1, stop=4))
+
+resale_data_19902014
+```
+
+The "**remaining_lease"** column in the last data set has type \<chr\>, we will convert it to \<int\> for uniformity before merging.
+
+```{r}
+resale_data_2017$remaining_lease <- as.integer(substr(resale_data_2017$remaining_lease, start=1, stop=2))
+
+resale_data_2017
+```
+
+We can then merge all 4 datasets into one uniform dataset.
+
+```{r}
+resale_data <- rbind(resale_data_19902014, resale_data_2017)
+summary(resale_data)
+
+arrange(resale_data, remaining_lease, desc=F)
+```
+
+Next, we can remove some of the columns which are irrelevant for our study.
+
+```{r}
+clean_resale_data <- resale_data %>%
+  select(-block, -street_name, -flat_model)
+
+clean_resale_data
+```
+
+```{r}
+summary(clean_resale_data)
+```
 
 ## Exploratory Data Analysis for Resale Flat Prices
 
