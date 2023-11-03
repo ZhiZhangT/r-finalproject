@@ -22,6 +22,7 @@ knitr::opts_chunk$set(echo = TRUE)
     <https://beta.data.gov.sg/datasets/d_2d493bdcc1d9a44828b6e71cb095b88d/view> 
 
 ```{r}
+
 library(tidyverse)
 library(dplyr)
 library(lubridate)
@@ -83,7 +84,7 @@ Next, we can remove some of the columns which are irrelevant for our study.
 
 ```{r}
 clean_resale_data <- resale_data %>%
-  select(-block, -street_name, -flat_model)
+  select(-flat_model)
 
 clean_resale_data
 ```
@@ -137,6 +138,45 @@ summary(clean_resale_data)
 ### Distribution of Price by Town (zz)
 
 -   Heat-map representation, over-time?
+
+In order to get a mapped representation of all our data points, we needed to convert the addresses to latitude, longitude coordinates. We can do so by using geocoding services such as Google Maps', but this will be very costly as we have close to 900k address to encode. Thankfully, we found a mapping dataset on Kaggle: <https://www.kaggle.com/datasets/mylee2009/singapore-postal-code-mapper/> that allowed us to do this mapping.
+
+Here, we read and renamed the column names to match the column names of our data frame and selected only the relevant columns, to prepare for inner joining.
+
+```{r}
+locations_df <- read_csv("sg_zipcode_mapper.csv")
+locations_df
+locations_df <- locations_df %>%
+  rename("street_name" = "RD_name", "block" = "blk_no") %>%
+  select(street_name, latitude, longtitude, block)
+```
+
+Next, we did an inner join to merge information about the coordinates on to our original dataframe.
+
+Our initial results only showed 26k matched rows out of over 800k rows, which was puzzling for us. Hence we examined the location-mapping dataframe closer with *View(locations_df)* and found out that there were different naming conventions for the street names. Hence, we rectified that manually in the .csv files, and our matches increased to over 671k rows, which was sufficient.
+
+```{r}
+
+matched_rows <- inner_join(clean_resale_data, locations_df, by = c("street_name", "block"))
+matched_rows$price_psm <- matched_rows$resale_price / matched_rows$floor_area_sqm
+
+count(matched_rows, matched_rows$town)
+matched_rows
+```
+
+```{r}
+# We found and used a vector file that makes up Singapore's map.
+singapore_map <- st_read("singapore-boundary.geojson")
+
+# Next we did a ggplot with the Singapore map as the underlying background layer, with points positioned based on their lat-long coordinates, and colored by their price per square metre.
+ggplot() +
+  geom_sf(data = singapore_map) +
+  coord_sf(crs = 4326, xlim = c(103.67, 104.0), ylim = c(1.26, 1.465), expand = FALSE) +
+  geom_point(data = matched_rows, aes(x = longtitude, y = latitude,  color= price_psm), size = 0.5) +
+  scale_color_gradient(low = "green", high = "red") +
+  labs(title = "Singapore Map with Data Points") +
+  theme_minimal()
+```
 
 ### Distribution of Price by Remaining Lease Years (marcus)
 
