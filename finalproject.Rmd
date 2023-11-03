@@ -95,6 +95,8 @@ summary(clean_resale_data)
 
 ### Overall Time Series Analysis of Prices (marcus)
 
+#testing git upload - marcus
+
 ### Distribution of Price by Flat Type (marcus)
 
 ### Distribution of Price by Town (zz)
