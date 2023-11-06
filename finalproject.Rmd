@@ -26,27 +26,33 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(dplyr)
 library(lubridate)
+library(sf)
+library(gganimate)
+library(animation)
+library(gifski)
 ```
 
 ## Data Cleaning and Preprocessing for Resale Flat Prices
 
 -   Remove street name, lease commence date, flat model (marcus)
 
-Our data set is split into 4 different csv files which contain data for different time periods. Let us read the data examine the columns and data types.
+Our data set is split into 5 different csv files which contain data for different time periods. Let us read the data examine the columns and data types.
 
 ```{r}
 resale_data_19901999 <- read.csv('resale_19901999.csv', header = TRUE, sep = ',', encoding = 'UTF-8')
 resale_data_20002012 <- read.csv('resale_2000Feb2012.csv', header = TRUE, sep = ',', encoding = 'UTF-8')
 resale_data_20122014 <- read.csv('resale_Mar2012toDec2014.csv', header = TRUE, sep = ',', encoding = 'UTF-8')
+resale_data_20152016 <- read.csv('resale_20152016.csv', header=TRUE, sep = ',', encoding = 'UTF-8')
 resale_data_2017 <- read.csv('resale_Jan2017onwards.csv', header = TRUE, sep = ',', encoding = 'UTF-8')
 
 resale_data_19901999
 resale_data_20002012
 resale_data_20122014
+resale_data_20152016
 resale_data_2017
 ```
 
-Next, we notice that 3 of 4 dataframes have the same columns, we will try to merge these 3 data frames by stacking them on top vertically.
+Next, we notice that 3 of 5 dataframes have the same columns, we will try to merge these 3 data frames by stacking them on top vertically.
 
 ```{r}
 resale_data_19902014 <- rbind(resale_data_19901999, resale_data_20002012, resale_data_20122014)
@@ -63,18 +69,21 @@ resale_data_19902014$remaining_lease <- resale_data_19902014$lease_commence_date
 resale_data_19902014
 ```
 
-The "**remaining_lease"** column in the last data set has type \<chr\>, we will convert it to \<int\> for uniformity before merging.
+The "**remaining_lease"** column in the last 2 data set has type \<chr\>, we will convert it to \<int\> for uniformity before merging.
 
 ```{r}
+resale_data_20152016$remaining_lease <- as.integer(substr(resale_data_20152016$remaining_lease, start=1, stop=2))
+
 resale_data_2017$remaining_lease <- as.integer(substr(resale_data_2017$remaining_lease, start=1, stop=2))
 
+resale_data_20152016
 resale_data_2017
 ```
 
-We can then merge all 4 datasets into one uniform dataset.
+We can then merge all 5 datasets into one uniform dataset.
 
 ```{r}
-resale_data <- rbind(resale_data_19902014, resale_data_2017)
+resale_data <- rbind(resale_data_19902014, resale_data_20152016, resale_data_2017)
 summary(resale_data)
 
 arrange(resale_data, remaining_lease, desc=F)
@@ -157,10 +166,6 @@ In order to have a better understanding of how the prices of HDB units changed o
 ggplot(clean_resale_data, aes(x = month, y = resale_price)) +
   geom_line()
 ```
-
-The gap from 2015 to 2017 is due to the lack of data from that period.
-
-## Do we need to analyse this? eg, find some govt cooling measure to explain the drop in price in some years etc?
 
 ### Distribution of Price by Flat Type (marcus)
 
@@ -261,8 +266,6 @@ ggplot(clean_resale_data_2017, aes(x = resale_price)) +
 
 ### Distribution of Price by Town (zz)
 
--   Heat-map representation, over-time?
-
 In order to get a mapped representation of all our data points, we needed to convert the addresses to latitude, longitude coordinates. We can do so by using geocoding services such as Google Maps', but this will be very costly as we have close to 900k address to encode. Thankfully, we found a mapping dataset on Kaggle: <https://www.kaggle.com/datasets/mylee2009/singapore-postal-code-mapper/> that allowed us to do this mapping.
 
 Here, we read and renamed the column names to match the column names of our data frame and selected only the relevant columns, to prepare for inner joining.
@@ -277,7 +280,11 @@ locations_df <- locations_df %>%
 
 Next, we did an inner join to merge information about the coordinates on to our original dataframe.
 
-Our initial results only showed 26k matched rows out of over 800k rows, which was puzzling for us. Hence we examined the location-mapping dataframe closer with *View(locations_df)* and found out that there were different naming conventions for the street names. Hence, we rectified that manually in the .csv files, and our matches increased to over 671k rows, which was sufficient.
+Our initial results only showed 26k matched rows out of over 900k rows, which was puzzling for us. Hence we examined the location-mapping dataframe closer with *View(locations_df)* and found out that there were different naming conventions for the street names. Hence, we rectified that manually in the .csv files, and our matches increased to over 700k rows, which was sufficient.
+
+```{r}
+clean_resale_data
+```
 
 ```{r}
 
@@ -292,23 +299,120 @@ matched_rows
 # We found and used a vector file that makes up Singapore's map.
 singapore_map <- st_read("singapore-boundary.geojson")
 
+# Adding labels of each town to the map:
 labels <- data.frame(
-  longitude = c(103.85, 103.847641, 103.932381, 103.848747, 103.818588, 103.7630947, 103.7763724, 103.84622192382812, 103.74625396728516, 103.76336669921875, 103.8818588256836, 103.89112091064453, 103.74030303955078, 103.70392608642578, 103.85871887207031, 103.90089416503906, 103.95957946777344, 103.90625762939453, 103.7967529296875, 103.82157135009766, 103.89371490478516),
-  latitude = c(1.3, 1.371730 ,1.324660, 1.350400, 1.282010, 1.3779175, 1.3546901, 1.2873523235321045, 1.3849343061447144, 1.3065141439437866, 1.3184434175491333, 1.3708921670913696, 1.3372708559036255, 1.3410615921020508, 1.3161046504974365, 1.3020074367523193, 1.3678756952285767, 1.4028823375701904, 1.3026505708694458, 1.4498075246810913, 1.3933453559875488), 
-  label = c("Singapore", "Ang Mo Kio", "Bedok", "Bishan", "Bukit Merah", "Bukit Panjang", "Bukit Timah", "Central", "Choa Chu Kang", "Clementi", "Geylang", "Hougang", "Jurong East", "Jurong West", "Kallang", "Marine Parade", "Pasir Ris", "Punggol", "Queenstown", "Sembawang", "Sengkang"
+  longitude = c(103.847641, 103.932381, 103.848747, 103.818588, 103.7630947, 103.7763724, 103.84622192382812, 103.74625396728516, 103.76336669921875, 103.8818588256836, 103.89112091064453, 103.74030303955078, 103.70392608642578, 103.85871887207031, 103.90089416503906, 103.95957946777344, 103.90625762939453, 103.7967529296875, 103.82157135009766, 103.89371490478516),
+  latitude = c(1.371730 ,1.324660, 1.350400, 1.282010, 1.3779175, 1.3546901, 1.2873523235321045, 1.3849343061447144, 1.3065141439437866, 1.3184434175491333, 1.3708921670913696, 1.3372708559036255, 1.3410615921020508, 1.3161046504974365, 1.3020074367523193, 1.3678756952285767, 1.4028823375701904, 1.3026505708694458, 1.4498075246810913, 1.3933453559875488), 
+  label = c("Ang Mo Kio", "Bedok", "Bishan", "Bukit Merah", "Bukit Panjang", "Bukit Timah", "Central", "Choa Chu Kang", "Clementi", "Geylang", "Hougang", "Jurong East", "Jurong West", "Kallang", "Marine Parade", "Pasir Ris", "Punggol", "Queenstown", "Sembawang", "Sengkang"
 ))
-
-labels
 
 # Next we did a ggplot with the Singapore map as the underlying background layer, with points positioned based on their lat-long coordinates, and colored by their price per square metre.
 
-ggplot() +
+base_plot <- ggplot() +
   geom_sf(data = singapore_map) +
   coord_sf(crs = 4326, xlim = c(103.67, 104.0), ylim = c(1.26, 1.465), expand = FALSE) +
   geom_point(data = matched_rows, aes(x = longtitude, y = latitude,  color= price_psm), size = 0.5) +
   scale_color_gradient(low = "green", high = "red") +
+  geom_text(data = labels, aes(x = longitude, y = latitude, label = label), size = 3) +
   labs(title = "Singapore Map with Data Points") +
   theme_minimal()
+
+base_plot
+```
+
+```{r}
+animation <- base_plot +
+  transition_time(month) +
+  labs(title = "Month: {frame_time}")
+
+animate(animation, duration = 10, fps = 6, width = 600, height = 300, renderer = gifski_renderer())
+```
+
+Here, we can see that property prices have been increasing steadily since the 1990s, starting from towns in the South like Bukit Merah and Central, and then the increase gradually expanded to other towns like Ang Mo Kio, Punggol and Bishan.
+
+Next, let us explore the number of transactions across towns:
+
+```{r}
+monthly_count <- clean_resale_data %>%
+  group_by(month, town) %>%
+  summarize(Count = n()) %>%
+  arrange(Count, DESC=T)
+
+monthly_count
+
+ggplot(monthly_count, aes(x = month, y = Count, color=town)) +
+  geom_line() +
+  labs(
+    title = "Number of Transactions Over Time",
+    x = "Month",
+    y = "Transaction Count"
+  )
+```
+
+From this, we observe that there is a large spike in the number of transactions in the years 1998-2000, where Singapore experienced a property "boom" period; and we also can see that the build-up and gradual stabilization took around 3-4 years each. There are smaller peaks in the years of 2010 and 2021 as well. Overall, we can see that the trend follows a wave pattern where there are repeated periods of ups and downs that span around 10-15 years each.
+
+```{r fig.width=10, fig.height=6}
+
+ggplot(data = clean_resale_data) +
+  geom_bar(aes(x = month, color=town))
+  facet_wrap(clean_resale_data$town) +
+  labs(title = "Number of Transactions Over Time",
+       x = "Year-Month",
+       y = "Transaction Count") +
+  theme(legend.key.size = unit(1, "lines"))
+```
+
+We can observe that the peak in 1998-2000 comprised of all-time high number of HDB resales happening in Bedok, Hougang, Pasir Ris, Jurong West, Tampines, Yishun; while the peak in 2010 can be attributed to the towns of Jurong West, Woodlands, Yishun, Bedok and Clementi. The most recent peak in 2022 can be mainly attributed to Yishun, Woodlands, Choa Chu Kang, Tampines and Jurong West.
+
+Next, let's explore how the resale prices vary across HDB Towns.
+
+We first see the overall resale prices trend in Singapore:
+
+```{r}
+ggplot(data = clean_resale_data, aes(x=month, y=resale_price)) +
+  geom_point() +
+  geom_smooth()
+```
+
+Next, we look at the trend in each HDB Town:
+
+```{r fig.width=10, fig.height=6}
+ggplot() +
+  geom_smooth(data = clean_resale_data, aes(x = month, y = resale_price, color=town)) +
+  facet_wrap(clean_resale_data$town)
+```
+
+We can see that each town generally follows the overall trend of Singapore's HDB resale prices: with a steady increase over time but with periodic ups and downs in property prices. It can be noted that the peak and trendline for property prices typically trail those for the number of transactions by 1-2 years, shedding light on Singapore's property market behavior.
+
+There is a lack of data for Lim Chu Kang town because in Lim Chu Kang, there was only a small public housing area known as Neo Tiew Estate (or Lim Chu Kang Rural Centre). The whole area was en-bloc in 2002, with the residents shifted to Jurong West. The estate was vacated since then, and is currently used for FIBUA (Fighting in Built-Up Areas) trainings by the Singapore Armed Forces (SAF). Hence, there is little to no transactions happening in Lim Chu Kang.
+
+```{r}
+summary_town <- filtered_data %>%
+  group_by(town) %>%
+  summarise(Mean_Price = mean(resale_price))
+
+ggplot(data = summary_town, aes(x = town, y= Mean_Price)) +
+  geom_bar(stat = "identity", fill="blue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::comma)
+```
+
+```{r fig.width=10, fig.height=8}
+# Consider only the most recent data, after 2020: 
+filtered_data <- clean_resale_data %>%
+  filter(year(month) >= 2020)
+
+ggplot() +
+  geom_boxplot(data = filtered_data, aes(y = resale_price)) +
+  facet_wrap(filtered_data$town)
+```
+
+Here, we can get a bird's eye view of the relative pricing of each town's HDB properties through the median resale price, 1st and 3rd quartile price and the minimum/ maximum prices.
+
+You would have to pay a premium for flats in towns like Bishan, Bukit Merah, Bukit Timah, Central Area, Queenstown and Toa Payoh with median prices of around \$750K; primarily due to their locations and proximity to workplaces and places of attraction. On the other end, flats in towns like Choa Chu Kang, Bukit Panjang, Sembawang, Yishun and Pasir Ris are more affordable with median prices of around \$400K.
+
+```{r}
+
 ```
 
 ### Distribution of Price by Remaining Lease Years (marcus)
