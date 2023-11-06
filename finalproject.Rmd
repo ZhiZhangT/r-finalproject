@@ -134,6 +134,7 @@ clean_resale_data <- clean_resale_data %>%
 ```
 
 Changing the date of sale to the correct date format,
+
 ```{r}
 clean_resale_data$month <- as.Date(paste(clean_resale_data$month, "01", sep = "-"), format = "%Y-%m-%d")
 ```
@@ -145,7 +146,9 @@ summary(clean_resale_data)
 ## Exploratory Data Analysis for Resale Flat Prices
 
 ### Overall Time Series Analysis of Prices (marcus)
+
 In order to have a better understanding of how the prices of HDB units changed over time, we shall conduct a time series analysis of prices.
+
 ```{r}
 #library(tsibble)
 #hdb_tsibble <- clean_resale_data %>%
@@ -154,12 +157,15 @@ In order to have a better understanding of how the prices of HDB units changed o
 ggplot(clean_resale_data, aes(x = month, y = resale_price)) +
   geom_line()
 ```
+
 The gap from 2015 to 2017 is due to the lack of data from that period.
 
 ## Do we need to analyse this? eg, find some govt cooling measure to explain the drop in price in some years etc?
 
 ### Distribution of Price by Flat Type (marcus)
+
 We can also analyse the data to analyse the prices of the different types of HDB flats.
+
 ```{r}
 summary_stats <- clean_resale_data %>%
   group_by(flat_type) %>%
@@ -173,6 +179,7 @@ summary_stats
 ```
 
 Visualising using Box Plot,
+
 ```{r}
 ggplot(clean_resale_data, aes(x = flat_type, y = resale_price)) +
   geom_boxplot() +
@@ -181,6 +188,7 @@ ggplot(clean_resale_data, aes(x = flat_type, y = resale_price)) +
 ```
 
 Visualising using Bar Plot,
+
 ```{r}
 ggplot(summary_stats, aes(x = flat_type, y = Mean_Price)) +
   geom_bar(stat = "identity", fill = "blue") +
@@ -191,6 +199,7 @@ ggplot(summary_stats, aes(x = flat_type, y = Mean_Price)) +
 ```
 
 Visualizing using Histogram,
+
 ```{r}
 ggplot(clean_resale_data, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
@@ -199,7 +208,9 @@ ggplot(clean_resale_data, aes(x = resale_price)) +
   scale_x_continuous(labels = scales::comma)
 
 ```
+
 As noticed in the time-series analysis, the prices of HDB flats changed greatly over time. It might thus be more useful to compare the price of various flat types over a shorter time frame. We chose 2017 for this as this is the latest data.
+
 ```{r}
 clean_resale_data_2017 <- clean_resale_data %>%
   filter(year(month) == 2017)
@@ -218,6 +229,7 @@ summary_stats_2017
 ```
 
 Visualising using Box Plot,
+
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = flat_type, y = resale_price)) +
   geom_boxplot() +
@@ -226,6 +238,7 @@ ggplot(clean_resale_data_2017, aes(x = flat_type, y = resale_price)) +
 ```
 
 Visualising using Bar Plot,
+
 ```{r}
 ggplot(summary_stats_2017, aes(x = flat_type, y = Mean_Price)) +
   geom_bar(stat = "identity", fill = "blue") +
@@ -234,7 +247,9 @@ ggplot(summary_stats_2017, aes(x = flat_type, y = Mean_Price)) +
   scale_y_continuous(labels = scales::comma)
 
 ```
+
 Visualizing using Histogram,
+
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
@@ -243,7 +258,6 @@ ggplot(clean_resale_data_2017, aes(x = resale_price)) +
   scale_x_continuous(labels = scales::comma)
 
 ```
-
 
 ### Distribution of Price by Town (zz)
 
@@ -278,7 +292,16 @@ matched_rows
 # We found and used a vector file that makes up Singapore's map.
 singapore_map <- st_read("singapore-boundary.geojson")
 
+labels <- data.frame(
+  longitude = c(103.85, 103.847641, 103.932381, 103.848747, 103.818588, 103.7630947, 103.7763724, 103.84622192382812, 103.74625396728516, 103.76336669921875, 103.8818588256836, 103.89112091064453, 103.74030303955078, 103.70392608642578, 103.85871887207031, 103.90089416503906, 103.95957946777344, 103.90625762939453, 103.7967529296875, 103.82157135009766, 103.89371490478516),
+  latitude = c(1.3, 1.371730 ,1.324660, 1.350400, 1.282010, 1.3779175, 1.3546901, 1.2873523235321045, 1.3849343061447144, 1.3065141439437866, 1.3184434175491333, 1.3708921670913696, 1.3372708559036255, 1.3410615921020508, 1.3161046504974365, 1.3020074367523193, 1.3678756952285767, 1.4028823375701904, 1.3026505708694458, 1.4498075246810913, 1.3933453559875488), 
+  label = c("Singapore", "Ang Mo Kio", "Bedok", "Bishan", "Bukit Merah", "Bukit Panjang", "Bukit Timah", "Central", "Choa Chu Kang", "Clementi", "Geylang", "Hougang", "Jurong East", "Jurong West", "Kallang", "Marine Parade", "Pasir Ris", "Punggol", "Queenstown", "Sembawang", "Sengkang"
+))
+
+labels
+
 # Next we did a ggplot with the Singapore map as the underlying background layer, with points positioned based on their lat-long coordinates, and colored by their price per square metre.
+
 ggplot() +
   geom_sf(data = singapore_map) +
   coord_sf(crs = 4326, xlim = c(103.67, 104.0), ylim = c(1.26, 1.465), expand = FALSE) +
@@ -289,7 +312,8 @@ ggplot() +
 ```
 
 ### Distribution of Price by Remaining Lease Years (marcus)
-As HDB units is a form of public housing, all HDB units sold to Singaporeans have a 99 year lease attached to them. Once the period of the lease is up, the unit must be returned to the government without compensation (ie, its value will be 0 when the lease hits 0 years). 
+
+As HDB units is a form of public housing, all HDB units sold to Singaporeans have a 99 year lease attached to them. Once the period of the lease is up, the unit must be returned to the government without compensation (ie, its value will be 0 when the lease hits 0 years).
 
 Thus, one factor that affects the price of a HDB unit is the number of years of lease left. We shall analyse this here.
 
@@ -304,20 +328,26 @@ remaining_lease_summary_stats <- clean_resale_data %>%
   )
 remaining_lease_summary_stats
 ```
+
 Scatter plot
+
 ```{r}
 ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
+
 Using a regression model,
+
 ```{r}
 lm_model <- lm(resale_price ~ remaining_lease, data = clean_resale_data)
 
 # Summary of the regression model
 summary(lm_model)
 ```
+
 Visualsing the regression line,
+
 ```{r}
 ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
@@ -325,8 +355,9 @@ ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
   labs(title = "Regression Line: Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 
 ```
-#This data is too dirty. 
-In order to ensure that we see a clearer relationship between the price and the remaining lease, let's only use data from 2017.
+
+#This data is too dirty. In order to ensure that we see a clearer relationship between the price and the remaining lease, let's only use data from 2017.
+
 ```{r}
 remaining_lease_summary_stats_2017 <- clean_resale_data_2017 %>%
   group_by(remaining_lease) %>%
@@ -338,29 +369,37 @@ remaining_lease_summary_stats_2017 <- clean_resale_data_2017 %>%
   )
 remaining_lease_summary_stats_2017
 ```
+
 Scatter plot
+
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
+
 Using a regression model,
+
 ```{r}
 lm_model_2017 <- lm(resale_price ~ remaining_lease, data = clean_resale_data_2017)
 
 # Summary of the regression model
 summary(lm_model_2017)
 ```
+
 Visualsing the regression line,
+
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE, color = "blue") +
   labs(title = "Regression Line: Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
+
 We can see that there is a positive relationship between remaining lease and the resale price.
 
 ### Predict the future price of HDB for Remaining lease years of less than 40 (or whatever the lowest remaining lease years is now)
+
 From the sales data we are utilising, we can see that the lowest remaining lease value is 42 years. This is because it has only been around 60 years since the first HDB unit was sold. As such, til date, there has been no unit that was returned to the government. We know that the price of these units will be zero when the lease runs out. As such, one point of interest we can analyse would be whether this fact is taken into account by the resale market.
 
 Let's create an additional data point for when resale price = 0 when remaining lease = 0. We shall create a new weighted regression model with increased weight for the (0, 0) data point.
@@ -379,7 +418,9 @@ weighted_lm_model <- lm(resale_price ~ remaining_lease, data = clean_resale_data
 summary(weighted_lm_model)
 
 ```
+
 Visualizing on scatter plot,
+
 ```{r}
 # Scatterplot of data
 plot(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale_price, pch = 19, col = "black", main = "Weighted Regression Line: Resale Prices vs. Remaining Lease", xlab = "Remaining Lease (Years)", ylab = "Resale Price (SGD)")
@@ -388,9 +429,10 @@ plot(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale
 abline(weighted_lm_model, col = "red")
 ```
 
-
 ### Distribution of Price by Storey range of flat (marcus)
+
 Let's also explore how the storey of the unit affects the price
+
 ```{r}
 # Since there are too many storeys to display on a barplot, let's create bins
 bin_width <- 10 
@@ -407,7 +449,9 @@ storey_bin_summary_stats <- clean_resale_data_bins %>%
   )
 storey_bin_summary_stats 
 ```
+
 Visualising using Box Plot,
+
 ```{r}
 ggplot(clean_resale_data_bins, aes(x = storey_bin, y = resale_price)) +
   geom_boxplot() +
@@ -416,13 +460,16 @@ ggplot(clean_resale_data_bins, aes(x = storey_bin, y = resale_price)) +
 ```
 
 Visualising using a barplot,
+
 ```{r}
 ggplot(storey_bin_summary_stats, aes(x = storey_bin, y = Mean_Price)) +
   geom_bar(stat = "identity", fill = "blue") +
   labs(title = "Average Price by Storey Range", x = "Storey Range", y = "Average Resale Price (SGD)") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 Visualising using a histogram,
+
 ```{r}
 ggplot(clean_resale_data_bins, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
@@ -430,7 +477,6 @@ ggplot(clean_resale_data_bins, aes(x = resale_price)) +
   labs(title = "Price Distribution by Storey Range", x = "Resale Price (SGD)")
 
 ```
-
 
 ## Modelling and Prediction of future HDB Resale Prices (xf)
 
