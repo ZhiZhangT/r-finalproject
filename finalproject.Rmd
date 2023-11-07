@@ -161,7 +161,7 @@ grouped_clean_resale_data <- clean_resale_data %>%
 ggplot(grouped_clean_resale_data, aes(x = month, y = avg_price)) +
   geom_line() +
   scale_y_continuous(labels = scales::comma) +
-  labs(title = "Regression Line: Resale Price Over Time", x = "Time", y = "Resale Price")
+  labs(title = "Resale Price Over Time", x = "Time", y = "Resale Price")
 ```
 
 ### Distribution of Price by Flat Type (marcus)
@@ -185,7 +185,7 @@ Visualising using Box Plot,
 ```{r}
 ggplot(clean_resale_data, aes(x = flat_type, y = resale_price)) +
   geom_boxplot() +
-  labs(title = "Distribution of Prices by Flat Type", y = "Resale Price (SGD)") +
+  labs(title = "Distribution of Prices by Flat Type", y = "Resale Price (SGD)", x = "flat type") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
@@ -194,7 +194,7 @@ Visualising using Bar Plot,
 ```{r}
 ggplot(summary_stats, aes(x = flat_type, y = Mean_Price)) +
   geom_bar(stat = "identity", fill = "blue") +
-  labs(title = "Average Price by Flat Type", y = "Average Resale Price (SGD)") +
+  labs(title = "Average Price by Flat Type", y = "Average Resale Price (SGD)", x = "flat type") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_y_continuous(labels = scales::comma)
 
@@ -206,7 +206,7 @@ Visualizing using Histogram,
 ggplot(clean_resale_data, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
   facet_wrap(~flat_type, scales = "free") +
-  labs(title = "Price Distribution by Flat Type", x = "Resale Price (SGD)") +
+  labs(title = "Price Distribution by Flat Type", x = "Resale Price (SGD)", x = "flat type") +
   scale_x_continuous(labels = scales::comma)
 
 ```
@@ -235,7 +235,7 @@ Visualising using Box Plot,
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = flat_type, y = resale_price)) +
   geom_boxplot() +
-  labs(title = "Distribution of Prices by Flat Type", y = "Resale Price (SGD)") +
+  labs(title = "Distribution of Prices by Flat Type", y = "Resale Price (SGD)", x = "flat type") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
@@ -244,7 +244,7 @@ Visualising using Bar Plot,
 ```{r}
 ggplot(summary_stats_2017, aes(x = flat_type, y = Mean_Price)) +
   geom_bar(stat = "identity", fill = "blue") +
-  labs(title = "Average Price by Flat Type", y = "Average Resale Price (SGD)") +
+  labs(title = "Average Price by Flat Type", y = "Average Resale Price (SGD)", x = "flat type") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_y_continuous(labels = scales::comma)
 
@@ -256,7 +256,7 @@ Visualizing using Histogram,
 ggplot(clean_resale_data_2017, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
   facet_wrap(~flat_type, scales = "free") +
-  labs(title = "Price Distribution by Flat Type", x = "Resale Price (SGD)") +
+  labs(title = "Price Distribution by Flat Type", x = "Resale Price (SGD)", x = "flat type") +
   scale_x_continuous(labels = scales::comma)
 
 ```
@@ -368,7 +368,10 @@ We first see the overall resale prices trend in Singapore:
 ```{r}
 ggplot(data = clean_resale_data, aes(x=month, y=resale_price)) +
   geom_point() +
-  geom_smooth()
+  geom_smooth() +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title = "Resale Price Over Time", x = "Time", y = "Resale Price")
+
 ```
 
 Next, we look at the trend in each HDB Town:
@@ -376,7 +379,10 @@ Next, we look at the trend in each HDB Town:
 ```{r fig.width=10, fig.height=6}
 ggplot() +
   geom_smooth(data = clean_resale_data, aes(x = month, y = resale_price, color=town)) +
-  facet_wrap(clean_resale_data$town)
+  facet_wrap(clean_resale_data$town) +
+  scale_y_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_blank()) +
+  labs(title = "Resale Price Over Time for Various Towns", x = "Time", y = "Resale Price")
 ```
 
 We can see that each town generally follows the overall trend of Singapore's HDB resale prices: with a steady increase over time but with periodic ups and downs in property prices. It can be noted that the peak and trendline for property prices typically trail those for the number of transactions by 1-2 years, shedding light on Singapore's property market behavior.
@@ -384,14 +390,15 @@ We can see that each town generally follows the overall trend of Singapore's HDB
 There is a lack of data for Lim Chu Kang town because in Lim Chu Kang, there was only a small public housing area known as Neo Tiew Estate (or Lim Chu Kang Rural Centre). The whole area was en-bloc in 2002, with the residents shifted to Jurong West. The estate was vacated since then, and is currently used for FIBUA (Fighting in Built-Up Areas) trainings by the Singapore Armed Forces (SAF). Hence, there is little to no transactions happening in Lim Chu Kang.
 
 ```{r}
-summary_town <- filtered_data %>%
+summary_town <- clean_resale_data %>%
   group_by(town) %>%
   summarise(Mean_Price = mean(resale_price))
 
 ggplot(data = summary_town, aes(x = town, y= Mean_Price)) +
   geom_bar(stat = "identity", fill="blue") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_y_continuous(labels = scales::comma)
+  scale_y_continuous(labels = scales::comma) +
+  labs(title = "Resale Price for Various Towns", x = "Town", y = "Mean Resale Price")
 ```
 
 ```{r fig.width=10, fig.height=8}
@@ -433,8 +440,18 @@ remaining_lease_summary_stats
 Scatter plot
 
 ```{r}
+#grouped_remaining_lease <- clean_resale_data %>%
+#  group_by(remaining_lease) %>%
+#  summarize(avg_price = mean(resale_price, na.rm = TRUE))
+
+#ggplot(grouped_remaining_lease, aes(x = remaining_lease, y = avg_price)) +
+#  geom_line() +
+#  scale_y_continuous(labels = scales::comma) +
+#  labs(title = "Average Price vs Remaining Lease", x = "Remaining Lease", y = "Resale Price")
+
 ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
+  geom_smooth() +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
 
@@ -447,7 +464,7 @@ lm_model <- lm(resale_price ~ remaining_lease, data = clean_resale_data)
 summary(lm_model)
 ```
 
-Visualsing the regression line,
+Visualizing the regression line,
 
 ```{r}
 ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
@@ -476,6 +493,7 @@ Scatter plot
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
+  geom_smooth() +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
 
@@ -488,7 +506,7 @@ lm_model_2017 <- lm(resale_price ~ remaining_lease, data = clean_resale_data_201
 summary(lm_model_2017)
 ```
 
-Visualsing the regression line,
+Visualizing the regression line,
 
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = remaining_lease, y = resale_price)) +
@@ -512,7 +530,7 @@ additional_point <- data.frame(
 )
 clean_resale_data_2017_00 <- bind_rows(clean_resale_data_2017, additional_point)
 
-weights <- ifelse(clean_resale_data_2017_00$remaining_lease == 0, 165041, 1)
+weights <- ifelse(clean_resale_data_2017_00$remaining_lease == 0, 20509, 1)
 
 weighted_lm_model <- lm(resale_price ~ remaining_lease, data = clean_resale_data_2017_00, weights = weights)
 
@@ -529,6 +547,14 @@ plot(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale
 # Add the fitted line from the regression model
 abline(weighted_lm_model, col = "red")
 ```
+Price Prediction Data,
+```{r}
+ggplot(clean_resale_data_2017_00, aes(x = remaining_lease, y = resale_price)) +
+  geom_point() +
+  geom_smooth() +
+  labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
+```
+
 
 ### Distribution of Price by Storey range of flat (marcus)
 
