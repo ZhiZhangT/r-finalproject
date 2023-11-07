@@ -129,12 +129,7 @@ For **"storey_range"**:
 ```{r}
 count(clean_resale_data, clean_resale_data$storey_range)
 
-# Not sure how to handle the overlaps LMAO @marcus do you think we can fix these into categorical variables?
-
-# i try. imma just average it
-
 # Since the storey data is provided in a range, we shall determine the average storey and use that for analysis.
-# Create a new column with the average storey
 clean_resale_data <- clean_resale_data %>%
   mutate(storey_min = as.numeric(sub(" TO .*", "", storey_range)),
          storey_max = as.numeric(sub(".* TO ", "", storey_range)),
@@ -156,15 +151,17 @@ summary(clean_resale_data)
 
 ### Overall Time Series Analysis of Prices (marcus)
 
-In order to have a better understanding of how the prices of HDB units changed over time, we shall conduct a time series analysis of prices.
+In order to have a better understanding of how the prices of HDB units in general changed over time, we shall conduct a time series analysis of prices.
 
 ```{r}
-#library(tsibble)
-#hdb_tsibble <- clean_resale_data %>%
-#  as_tsibble(index = month)
-#summary(hdb_tsibble)
-ggplot(clean_resale_data, aes(x = month, y = resale_price)) +
-  geom_line()
+grouped_clean_resale_data <- clean_resale_data %>%
+  group_by(month) %>%
+  summarize(avg_price = mean(resale_price, na.rm = TRUE))
+
+ggplot(grouped_clean_resale_data, aes(x = month, y = avg_price)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title = "Regression Line: Resale Price Over Time", x = "Time", y = "Resale Price")
 ```
 
 ### Distribution of Price by Flat Type (marcus)
