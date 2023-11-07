@@ -547,13 +547,86 @@ plot(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale
 # Add the fitted line from the regression model
 abline(weighted_lm_model, col = "red")
 ```
-Price Prediction Data,
+Price Prediction Data Using Locally estimated scatterplot smoothing,
 ```{r}
 ggplot(clean_resale_data_2017_00, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
-  geom_smooth() +
+  geom_smooth(method = "loess") +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
+Price prediction using ggtrendline
+##not working, cant combine
+```{r}
+library(ggtrendline)
+ggtrendline(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale_price, model = "line3P")
+ggplot(clean_resale_data_2017_00, aes(x = remaining_lease, y = resale_price)) +
+  geom_point() +
+  labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
+```
+
+Prediction of price trend using forecast,
+##not working
+```{r}
+library(forecast)
+
+aggregated_data <- clean_resale_data_2017%>%
+  group_by(remaining_lease) %>%
+  summarize(avg_resale_price = mean(resale_price))
+
+# Convert data to time series
+ts_data <- ts(aggregated_data$avg_resale_price)
+
+# Fit an ARIMA model (replace with your model)
+arima_model <- auto.arima(ts_data)
+
+# Make forecasts for years 1 to 41
+forecast_values <- forecast(arima_model, h = 41)
+
+# Create a data frame for visualization
+df <- data.frame(
+  year = 48:96,
+  actual = c(0, aggregated_data$avg_resale_price),
+  forecast = forecast_values$mean
+)
+
+# Create a ggplot to visualize historical and forecasted data
+ggplot(df, aes(x = year, y = actual)) +
+  geom_line(aes(color = "Actual")) +
+  geom_line(aes(x = year, y = forecast, color = "Forecast")) +
+  labs(title = "Historical and Forecasted Price Trend", x = "Year", y = "Resale Price") +
+  scale_color_manual(values = c("Actual" = "blue", "Forecast" = "red"))
+
+```
+Predict trend using least square,
+##ugly af, dk how fix
+```{r}
+
+additional_point <- data.frame(
+  remaining_lease = 0,
+  resale_price = 0
+)
+clean_resale_data_2017_00 <- bind_rows(clean_resale_data_2017, additional_point)
+
+# Define a nonlinear model (you need to choose an appropriate nonlinear function)
+polynomial_model <- lm(resale_price ~ remaining_lease + I(remaining_lease^2), 
+                      data = clean_resale_data_2017_00)
+
+# Make predictions with the nonlinear model
+predictions <- predict(polynomial_model, newdata = data.frame(remaining_lease = 1:99))
+
+# Create a data frame for visualization
+df <- data.frame(
+  remaining_lease = c(clean_resale_data_2017_00$remaining_lease, 1:99),
+  resale_price = c(clean_resale_data_2017_00$resale_price, predictions)
+)
+
+# Create a ggplot to visualize the data and nonlinear best-fit line
+ggplot(df, aes(x = remaining_lease, y = resale_price)) +
+  geom_point(data = clean_resale_data_2017_00, color = "blue") +
+  geom_line(data = df, aes(x = remaining_lease, y = resale_price), color = "red") +
+  labs(title = "Nonlinear Best-Fit Line", x = "Remaining Lease", y = "Resale Price")
+```
+
 
 
 ### Distribution of Price by Storey range of flat (marcus)
