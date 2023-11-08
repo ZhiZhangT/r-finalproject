@@ -346,6 +346,19 @@ ggplot(monthly_count, aes(x = month, y = Count)) +
   )
 ```
 
+From this, we observe that there is a large spike in the number of transactions in the years 1998-2000, where Singapore experienced a property "boom" period; and we also can see that the build-up and gradual stabilization took around 3-4 years each. There are smaller peaks in the years of 2010 and 2021 as well. Overall, we can see that the trend follows a wave pattern where there are repeated periods of ups and downs that span around 10-15 years each.
+
+```{r fig.width=10, fig.height=6}
+
+ggplot(data = clean_resale_data) +
+  geom_bar(aes(x = month, color=town))
+  facet_wrap(clean_resale_data$town) +
+  labs(title = "Number of Transactions Over Time",
+       x = "Year-Month",
+       y = "Transaction Count") +
+  theme(legend.key.size = unit(1, "lines"))
+```
+
 ```{r}
 monthly_count <- clean_resale_data %>%
   group_by(month, town) %>%
@@ -361,19 +374,6 @@ ggplot(monthly_count, aes(x = month, y = Count, color=town)) +
     x = "Month",
     y = "Transaction Count"
   )
-```
-
-From this, we observe that there is a large spike in the number of transactions in the years 1998-2000, where Singapore experienced a property "boom" period; and we also can see that the build-up and gradual stabilization took around 3-4 years each. There are smaller peaks in the years of 2010 and 2021 as well. Overall, we can see that the trend follows a wave pattern where there are repeated periods of ups and downs that span around 10-15 years each.
-
-```{r fig.width=10, fig.height=6}
-
-ggplot(data = clean_resale_data) +
-  geom_bar(aes(x = month, color=town))
-  facet_wrap(clean_resale_data$town) +
-  labs(title = "Number of Transactions Over Time",
-       x = "Year-Month",
-       y = "Transaction Count") +
-  theme(legend.key.size = unit(1, "lines"))
 ```
 
 We can observe that the peak in 1998-2000 comprised of all-time high number of HDB resales happening in Bedok, Hougang, Pasir Ris, Jurong West, Tampines, Yishun; while the peak in 2010 can be attributed to the towns of Jurong West, Woodlands, Yishun, Bedok and Clementi. The most recent peak in 2022 can be mainly attributed to Yishun, Woodlands, Choa Chu Kang, Tampines and Jurong West.
@@ -502,8 +502,8 @@ lm_model_2017 <- lm(resale_price ~ remaining_lease, data = clean_resale_data_201
 summary(lm_model_2017)
 ```
 
-Visualizing the regression line,
-#remove
+Visualizing the regression line, #remove
+
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
@@ -648,8 +648,8 @@ storey_bin_summary_stats <- clean_resale_data_bins %>%
 storey_bin_summary_stats 
 ```
 
-Visualising using Box Plot,
-##remove NA
+Visualising using Box Plot, ##remove NA
+
 ```{r}
 ggplot(clean_resale_data_bins, aes(x = storey_bin, y = resale_price)) +
   geom_boxplot() +
@@ -686,10 +686,115 @@ ggplot(clean_resale_data_bins, aes(x = resale_price)) +
 
 ## How BTO Buyers can maximise returns (KIV)
 
--   Calculate returns based on:
+HDB BTO (Build-To-Order) flats are a type of public housing in Singapore, offered by the Housing and Development Board (HDB). These flats are designed to cater to the housing needs of Singaporean citizens and are typically more affordable than private housing options.
 
-    -   Number of years after minimum MOP
+The Minimum Occupancy Period (MOP) is the minimum duration that homeowners are required to occupy their BTO flats before they can sell or rent them. The MOP duration typically ranges from 5 to 10 years, depending on the flat type and whether the flat was bought under the singles scheme. For example, the MOP for a standard family nucleus in a 4-room flat is typically 5 years.
 
-    -   Town
+```{r}
+BTO_data <- read_csv("BTO.csv")
 
-    -   Room Type
+BTO_town_counts <- count(BTO_data ,BTO_data$town)
+BTO_data
+BTO_town_counts
+```
+
+We will select only projects with more than 20 BTO launches in this dataset, to make sure our data and analysis are significant. We will also remove rows where the selling price is 0, meaning to say that there was no launch of that room-type in the town.
+
+```{r}
+BTO_data_merged <- merge(BTO_data ,BTO_town_counts, by.x = "town", by.y = "BTO_data$town")
+  
+BTO_data_filtered <- filter(BTO_data_merged ,BTO_data_merged$n > 20)
+
+BTO_data_final <- filter(BTO_data_filtered, BTO_data_filtered$min_selling_price > 0)
+```
+
+Next, we further clean this data to make sure that the columns of town and room-types and their corresponding values match that of the clean_resale_data figures.
+
+```{r}
+BTO_data_final$town_upper = toupper(BTO_data_final$town)
+
+mapping <- c("2-room" = "2 ROOM", "3-room" = "3 ROOM", "4-room" = "4 ROOM", "5-room" = "5 ROOM")
+
+BTO_data_final <- BTO_data_final %>%
+  mutate(flat_type = case_when(
+    room_type %in% names(mapping) ~ mapping[room_type],
+    TRUE ~ NA_character_
+  ))
+
+BTO_data_final
+count(BTO_data_final, BTO_data_final$flat_type)
+
+```
+
+Since BTOs have a minimum occupancy period of 5 years, and the earliest BTO project we have in the data set is in 2008, we will only require resale prices from year 2013 onwards, and we do the filtering. Next, we got the mean resale price for each town, flat type and year from clean_resale_data, to be merged later on with BTO_data_final.
+
+```{r}
+resale_data_for_bto <- clean_resale_data %>%
+  mutate(year = year(month)) %>%
+  group_by(year, town, flat_type) %>%
+  filter(town %in% c("CHOA CHU KANG", "PUNGGOL", "SEMBAWANG", "SENGKANG", "WOODLANDS", "YISHUN")) %>%
+  filter(year >= 2013) %>%
+  summarise(mean_resale_price = mean(resale_price))
+
+resale_data_for_bto
+
+```
+
+We want to see what the mean resale price of each BTO listing, every year after the MOP is up (assuming that the MOP is 5 years for all of these BTO projects). We look 10 years after the MOP is up, and add 10 columns for every row to the BTO_final_data. We then populate these columns by checking for the year, town and room-type data and getting the mean_resale_price value from resale_data_for_bto:
+
+```{r}
+for (i in 1:10) {
+  column_name <- paste("Mean Resale Price ", i, " years after the MOP")
+  
+  mean_resale_price_values <- numeric(nrow(BTO_data_final))
+  
+  for (j in 1:nrow(BTO_data_final)) {
+    year_condition <- BTO_data_final$financial_year[j] + i + 5 == (resale_data_for_bto$year) &
+                     BTO_data_final$town_upper[j] == resale_data_for_bto$town &
+                    BTO_data_final$flat_type[j] == resale_data_for_bto$flat_type
+    if (any(year_condition)) {
+      mean_resale_price_values[j] <- (resale_data_for_bto$mean_resale_price[year_condition])
+    } else {
+      mean_resale_price_values[j] <- NA
+    }
+  }
+  
+  BTO_data_final[[column_name]] <- mean_resale_price_values
+}
+
+view(BTO_data_final)
+
+BTO_data_final
+```
+
+Calculate returns based on:
+
+### Number of years after minimum MOP
+
+In this section, we want to find out if there is an optimal time for BTO owners to sell their flats to the public market in order to maximize profits from the sale.
+
+We only have full 10 years of data from BTO projects launched in 2008: Punggol, Sengkang and Woodlands. We will also standardise the flat-type to 4-rooms, and use those as our data for this study.
+
+```{r}
+rows_years <- subset(BTO_data_final, financial_year == 2008 & flat_type == "4 ROOM")
+
+rows_years
+```
+
+We will then calculate the potential profit in each year after the MOP is up. To standardize the purchase price, we will take the mean between the min_selling_price and max_selling_price.
+
+```{r}
+rows_years %>%
+  mutate(mean_purchase_price = (min_selling_price+max_selling_price) / 2)
+
+profit_over_years <- rows_years %>%
+  rename_with(~ str_replace_all(., "Price", "Profit"), everything())
+
+
+profit_over_years
+rows_years
+```
+
+-   Town
+
+-   Room Type
