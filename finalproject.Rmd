@@ -2,9 +2,7 @@
 title: "finalgroupproject"
 author: "Tee Zhi Zhang"
 date: "2023-11-01"
-output:
-  pdf_document: default
-  html_document: default
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -333,7 +331,6 @@ Next, let us explore the number of transactions across towns:
 
 ```{r}
 monthly_count <- clean_resale_data %>%
-<<<<<<< HEAD
   group_by(month) %>%
   summarize(Count = n()) %>%
   arrange(Count, DESC=T)
@@ -364,8 +361,6 @@ ggplot(data = clean_resale_data) +
 
 ```{r}
 monthly_count <- clean_resale_data %>%
-=======
->>>>>>> parent of d1578f4 (updates after meeting)
   group_by(month, town) %>%
   summarize(Count = n()) %>%
   arrange(Count, DESC=T)
@@ -411,6 +406,8 @@ We can see that each town generally follows the overall trend of Singapore's HDB
 
 There is a lack of data for Lim Chu Kang town because in Lim Chu Kang, there was only a small public housing area known as Neo Tiew Estate (or Lim Chu Kang Rural Centre). The whole area was en-bloc in 2002, with the residents shifted to Jurong West. The estate was vacated since then, and is currently used for FIBUA (Fighting in Built-Up Areas) trainings by the Singapore Armed Forces (SAF). Hence, there is little to no transactions happening in Lim Chu Kang.
 
+##punggol
+
 ```{r}
 summary_town <- clean_resale_data %>%
   group_by(town) %>%
@@ -436,10 +433,6 @@ ggplot() +
 Here, we can get a bird's eye view of the relative pricing of each town's HDB properties through the median resale price, 1st and 3rd quartile price and the minimum/ maximum prices.
 
 You would have to pay a premium for flats in towns like Bishan, Bukit Merah, Bukit Timah, Central Area, Queenstown and Toa Payoh with median prices of around \$750K; primarily due to their locations and proximity to workplaces and places of attraction. On the other end, flats in towns like Choa Chu Kang, Bukit Panjang, Sembawang, Yishun and Pasir Ris are more affordable with median prices of around \$400K.
-
-```{r}
-
-```
 
 ### Distribution of Price by Remaining Lease Years (marcus)
 
@@ -477,25 +470,6 @@ ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
 
-Using a regression model,
-
-```{r}
-lm_model <- lm(resale_price ~ remaining_lease, data = clean_resale_data)
-
-# Summary of the regression model
-summary(lm_model)
-```
-
-Visualizing the regression line,
-
-```{r}
-ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE, color = "blue") +
-  labs(title = "Regression Line: Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
-
-```
-
 #This data is too dirty. In order to ensure that we see a clearer relationship between the price and the remaining lease, let's only use data from 2017.
 
 ```{r}
@@ -528,11 +502,7 @@ lm_model_2017 <- lm(resale_price ~ remaining_lease, data = clean_resale_data_201
 summary(lm_model_2017)
 ```
 
-<<<<<<< HEAD
 Visualizing the regression line, #remove
-=======
-Visualizing the regression line,
->>>>>>> parent of d1578f4 (updates after meeting)
 
 ```{r}
 ggplot(clean_resale_data_2017, aes(x = remaining_lease, y = resale_price)) +
@@ -573,15 +543,18 @@ plot(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale
 # Add the fitted line from the regression model
 abline(weighted_lm_model, col = "red")
 ```
+
 Price Prediction Data Using Locally estimated scatterplot smoothing,
+
 ```{r}
 ggplot(clean_resale_data_2017_00, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
   geom_smooth(method = "loess") +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
-Price prediction using ggtrendline
-##not working, cant combine
+
+Price prediction using ggtrendline ##not working, cant combine
+
 ```{r}
 library(ggtrendline)
 ggtrendline(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale_price, model = "line3P")
@@ -590,8 +563,8 @@ ggplot(clean_resale_data_2017_00, aes(x = remaining_lease, y = resale_price)) +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
 
-Prediction of price trend using forecast,
-##not working
+Prediction of price trend using forecast, ##not working
+
 ```{r}
 library(forecast)
 
@@ -623,8 +596,9 @@ ggplot(df, aes(x = year, y = actual)) +
   scale_color_manual(values = c("Actual" = "blue", "Forecast" = "red"))
 
 ```
-Predict trend using least square,
-##ugly af, dk how fix
+
+Predict trend using least square, ##ugly af, dk how fix
+
 ```{r}
 
 additional_point <- data.frame(
@@ -649,11 +623,9 @@ df <- data.frame(
 # Create a ggplot to visualize the data and nonlinear best-fit line
 ggplot(df, aes(x = remaining_lease, y = resale_price)) +
   geom_point(data = clean_resale_data_2017_00, color = "blue") +
-  geom_line(data = df, aes(x = remaining_lease, y = resale_price), color = "red") +
+  geom_smooth(data = df, aes(x = remaining_lease, y = resale_price), color = "red") +
   labs(title = "Nonlinear Best-Fit Line", x = "Remaining Lease", y = "Resale Price")
 ```
-
-
 
 ### Distribution of Price by Storey range of flat (marcus)
 
@@ -676,11 +648,7 @@ storey_bin_summary_stats <- clean_resale_data_bins %>%
 storey_bin_summary_stats 
 ```
 
-<<<<<<< HEAD
 Visualising using Box Plot, ##remove NA
-=======
-Visualising using Box Plot,
->>>>>>> parent of d1578f4 (updates after meeting)
 
 ```{r}
 ggplot(clean_resale_data_bins, aes(x = storey_bin, y = resale_price)) +
@@ -709,8 +677,6 @@ ggplot(clean_resale_data_bins, aes(x = resale_price)) +
 ```
 
 ## Modelling and Prediction of future HDB Resale Prices (xf)
-
--   Linear regression for single variables
 
 -   Linear regression for 2 variables
 
@@ -818,15 +784,54 @@ rows_years
 We will then calculate the potential profit in each year after the MOP is up. To standardize the purchase price, we will take the mean between the min_selling_price and max_selling_price.
 
 ```{r}
-rows_years %>%
-  mutate(mean_purchase_price = (min_selling_price+max_selling_price) / 2)
-
 profit_over_years <- rows_years %>%
-  rename_with(~ str_replace_all(., "Price", "Profit"), everything())
-
+  mutate(mean_purchase_price = (min_selling_price + max_selling_price) / 2) %>%
+  rename_with(~ str_replace_all(., "Price", "Profit"), -mean_purchase_price)
 
 profit_over_years
-rows_years
+
+# Define the column from which you want to subtract values
+columns_to_deduct_from <- c("Mean Resale Profit  1  years after the MOP"
+, "Mean Resale Profit  2  years after the MOP"
+, "Mean Resale Profit  3  years after the MOP"
+, "Mean Resale Profit  4  years after the MOP"
+, "Mean Resale Profit  5  years after the MOP"
+, "Mean Resale Profit  6  years after the MOP"
+, "Mean Resale Profit  7  years after the MOP"
+, "Mean Resale Profit  8  years after the MOP"
+, "Mean Resale Profit  9  years after the MOP"
+, "Mean Resale Profit  10  years after the MOP")
+
+# Iterate through columns and subtract values
+for (col_name in colnames(profit_over_years)) {
+  if (col_name %in% columns_to_deduct_from) {
+    profit_over_years <- profit_over_years %>%
+      mutate(!!col_name := as.numeric(profit_over_years[ , col_name]) - mean_purchase_price)
+  }
+}
+
+view(profit_over_years)
+```
+
+```{r}
+profit_over_years %>%
+  select(-town, -financial_year, -room_type, -min_selling_price_less_ahg_shg, -max_selling_price, -min_selling_price, -max_selling_price_less_ahg_shg, -n, -town_upper, -flat_type, -room_type, -mean_purchase_price)
+  
+```
+
+```{r}
+# Plot a line graph for each row
+for (i in 1:nrow(profit_over_years)) {
+  data_row <- profit_over_years[i, -1]  # Exclude the ID column
+  data_row <- data.frame(Year = names(data_row), Value = as.numeric(data_row))
+  
+  # Create a line plot
+  p <- ggplot(data_row, aes(x = Year, y = Value)) +
+    geom_line() +
+    labs(title = paste("Row", i))
+  
+  print(p)
+}
 ```
 
 -   Town
