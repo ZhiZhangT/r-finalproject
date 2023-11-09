@@ -13,7 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Group: Marcus Wan, Tan Xue Feng, Tee Zhi Zhang
 
+
+Singapore's public housing system, administered by the Housing and Development Board (HDB), provides affordable and quality homes for the majority of the population. HDB flats are sold through two main schemes: the Build-To-Order (BTO) scheme, where buyers apply for new flats that are built upon sufficient demand, and the resale market, where buyers purchase existing flats from previous owners. Both schemes are subject to eligibility criteria, subsidies, and regulations that aim to ensure a fair and efficient allocation of housing resources. 
+
+In this report, we will explore the data and trends of the HDB prices in Singapore, covering both the resale and BTO markets. We will analyse the factors that influence the resale value of HDB flats, such as location, flat type, lease duration, and floor area. We will also explore how these various factors relate to each other and highlight some prevailing trends.
+
 ## Introduction of Data
+
+Here is where we got the data used in this analysis from:
 
 -   Price of HDB Resale Flat Sales: <https://beta.data.gov.sg/collections/189/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view>
 
@@ -21,6 +28,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
     <https://beta.data.gov.sg/datasets/d_2d493bdcc1d9a44828b6e71cb095b88d/view> 
 
+Here are a list of the libraries used
 ```{r}
 
 library(tidyverse)
@@ -33,8 +41,6 @@ library(gifski)
 ```
 
 ## Data Cleaning and Preprocessing for Resale Flat Prices
-
--   Remove street name, lease commence date, flat model (marcus)
 
 Our data set is split into 5 different csv files which contain data for different time periods. Let us read the data examine the columns and data types.
 
@@ -125,11 +131,10 @@ count(clean_resale_data, clean_resale_data$flat_type)
 ```
 
 For **"storey_range"**:
-
+Since the storey data is provided in a range, we shall determine the average storey and use that for analysis.
 ```{r}
 count(clean_resale_data, clean_resale_data$storey_range)
 
-# Since the storey data is provided in a range, we shall determine the average storey and use that for analysis.
 clean_resale_data <- clean_resale_data %>%
   mutate(storey_min = as.numeric(sub(" TO .*", "", storey_range)),
          storey_max = as.numeric(sub(".* TO ", "", storey_range)),
@@ -149,7 +154,7 @@ summary(clean_resale_data)
 
 ## Exploratory Data Analysis for Resale Flat Prices
 
-### Overall Time Series Analysis of Prices (marcus)
+### Overall Time Series Analysis of Prices
 
 In order to have a better understanding of how the prices of HDB units in general changed over time, we shall conduct a time series analysis of prices.
 
@@ -163,10 +168,11 @@ ggplot(grouped_clean_resale_data, aes(x = month, y = avg_price)) +
   scale_y_continuous(labels = scales::comma) +
   labs(title = "Resale Price Over Time", x = "Time", y = "Resale Price")
 ```
+We can see that there is a general rise in resale prices of HDB flats over time. The fall in prices observed in 1997 could be due to the asian financial crisis which negatively impacted the Singapore economy. The fall in prices in 2013 could be due to the introduction of cooling measures by the Singapore government. These included policies such as reducing the mortgage servicing ratio, the maximum loan term, and the eligibility of permanent residents to buy resale flats.
 
 ### Distribution of Price by Flat Type (marcus)
 
-We can also analyse the data to analyse the prices of the different types of HDB flats.
+We can also analyse the data to determine the prices of the different types of HDB flats.
 
 ```{r}
 summary_stats <- clean_resale_data %>%
@@ -188,9 +194,9 @@ ggplot(clean_resale_data, aes(x = flat_type, y = resale_price)) +
   labs(title = "Distribution of Prices by Flat Type", y = "Resale Price (SGD)", x = "flat type") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+From the box plot, we can see the median prices as well as the first and third quartile. We do notice that, as the housing type gets more expensive, the variance of the prices for that housing type also increases. 
 
 Visualising using Bar Plot,
-
 ```{r}
 ggplot(summary_stats, aes(x = flat_type, y = Mean_Price)) +
   geom_bar(stat = "identity", fill = "blue") +
@@ -199,9 +205,9 @@ ggplot(summary_stats, aes(x = flat_type, y = Mean_Price)) +
   scale_y_continuous(labels = scales::comma)
 
 ```
+We also do notice a general increase in the mean prices as the flat type gets better.
 
 Visualizing using Histogram,
-
 ```{r}
 ggplot(clean_resale_data, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
@@ -210,16 +216,19 @@ ggplot(clean_resale_data, aes(x = resale_price)) +
   scale_x_continuous(labels = scales::comma)
 
 ```
+Looking at the above histogram, we notice an anomaly in the price distribution of 2 room flats, with two peaks at around SGD 120,000 and SGD 250,000. Upon further research, we found out that two room flats come in two types: Type 1 and Type 2. The  more affordable type 1 flats are generally catered towards lower income households. This separation between type 1 and 2 two room flats is not delineated in our dataset. 
+https://www.hdb.gov.sg/cs/infoweb/-/media/doc/CCG/04022021-BTO-Annexes/Annex-A2-Feb-2021-BTO.pdf 
 
-As noticed in the time-series analysis, the prices of HDB flats changed greatly over time. It might thus be more useful to compare the price of various flat types over a shorter time frame. We chose 2017 for this as this is the latest data.
+
+As noticed in the time-series analysis, the prices of HDB flats changed greatly over time. It might thus be more useful to compare the price of various flat types over a shorter time frame. We chose data from 2022 for this as this is the latest full-year-data we have.
 
 ```{r}
-clean_resale_data_2017 <- clean_resale_data %>%
-  filter(year(month) == 2017)
+clean_resale_data_2022 <- clean_resale_data %>%
+  filter(year(month) == 2022)
 ```
 
 ```{r}
-summary_stats_2017 <- clean_resale_data_2017 %>%
+summary_stats_2022 <- clean_resale_data_2022 %>%
   group_by(flat_type) %>%
   summarize(
     Mean_Price = mean(resale_price),
@@ -227,22 +236,23 @@ summary_stats_2017 <- clean_resale_data_2017 %>%
     Min_Price = min(resale_price),
     Max_Price = max(resale_price)
   )
-summary_stats_2017
+summary_stats_2022
 ```
 
 Visualising using Box Plot,
 
 ```{r}
-ggplot(clean_resale_data_2017, aes(x = flat_type, y = resale_price)) +
+ggplot(clean_resale_data_2022, aes(x = flat_type, y = resale_price)) +
   geom_boxplot() +
   labs(title = "Distribution of Prices by Flat Type", y = "Resale Price (SGD)", x = "flat type") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::comma)
 ```
 
 Visualising using Bar Plot,
 
 ```{r}
-ggplot(summary_stats_2017, aes(x = flat_type, y = Mean_Price)) +
+ggplot(summary_stats_2022, aes(x = flat_type, y = Mean_Price)) +
   geom_bar(stat = "identity", fill = "blue") +
   labs(title = "Average Price by Flat Type", y = "Average Resale Price (SGD)", x = "flat type") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -253,15 +263,16 @@ ggplot(summary_stats_2017, aes(x = flat_type, y = Mean_Price)) +
 Visualizing using Histogram,
 
 ```{r}
-ggplot(clean_resale_data_2017, aes(x = resale_price)) +
+ggplot(clean_resale_data_2022, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
   facet_wrap(~flat_type, scales = "free") +
   labs(title = "Price Distribution by Flat Type", x = "Resale Price (SGD)", x = "flat type") +
   scale_x_continuous(labels = scales::comma)
 
 ```
+?????????Comparing the above three plots for 2022 against their corresponding plots for the entire time period, we see that there
 
-### Distribution of Price by Town (zz)
+### Distribution of Price by Town 
 
 In order to get a mapped representation of all our data points, we needed to convert the addresses to latitude, longitude coordinates. We can do so by using geocoding services such as Google Maps', but this will be very costly as we have close to 900k address to encode. Thankfully, we found a mapping dataset on Kaggle: <https://www.kaggle.com/datasets/mylee2009/singapore-postal-code-mapper/> that allowed us to do this mapping.
 
@@ -348,6 +359,19 @@ ggplot(monthly_count, aes(x = month, y = Count)) +
 
 From this, we observe that there is a large spike in the number of transactions in the years 1998-2000, where Singapore experienced a property "boom" period; and we also can see that the build-up and gradual stabilization took around 3-4 years each. There are smaller peaks in the years of 2010 and 2021 as well. Overall, we can see that the trend follows a wave pattern where there are repeated periods of ups and downs that span around 10-15 years each.
 
+Adding the resale price data to the above graph,
+```{r}
+coeff = 40
+ggplot(grouped_clean_resale_data, aes(x = month, y = avg_price)) +
+  geom_line(color = "blue") +
+  geom_line(data=monthly_count, aes(x = month, y = Count*coeff), color="black") +
+  scale_y_continuous("Resale Price", labels = scales::comma ) +
+  labs(title = "Resale Price Over Time", x = "Time")
+```
+We see some interesting phenomenon comparing the transaction count and the resale price data. We can see that in 1997, there is simultaneously a sharp drop in housing resale prices and a large increase in housing sale transactions. This is likely due to the retrenchment resulting from the asian financial crisis which caused a large number of people to sell off their HDB houses. This increased supply of HDB units in the market likely resulted in the sharp fall in price that we saw above. 
+
+On the other hand, we can see a sharp fall in sales transaction count in early 2020 likely due to the Covid pandemic lockdowns preventing people from selling their HDB houses. This reduction in supply in turn drove prices up. 
+
 ```{r fig.width=10, fig.height=6}
 
 ggplot(data = clean_resale_data) +
@@ -406,7 +430,7 @@ We can see that each town generally follows the overall trend of Singapore's HDB
 
 There is a lack of data for Lim Chu Kang town because in Lim Chu Kang, there was only a small public housing area known as Neo Tiew Estate (or Lim Chu Kang Rural Centre). The whole area was en-bloc in 2002, with the residents shifted to Jurong West. The estate was vacated since then, and is currently used for FIBUA (Fighting in Built-Up Areas) trainings by the Singapore Armed Forces (SAF). Hence, there is little to no transactions happening in Lim Chu Kang.
 
-##punggol
+On the other hand, being a relatively new estate opened in 2003, we only have data from Punggol town halfway through our analysis period.
 
 ```{r}
 summary_town <- clean_resale_data %>%
@@ -434,7 +458,7 @@ Here, we can get a bird's eye view of the relative pricing of each town's HDB pr
 
 You would have to pay a premium for flats in towns like Bishan, Bukit Merah, Bukit Timah, Central Area, Queenstown and Toa Payoh with median prices of around \$750K; primarily due to their locations and proximity to workplaces and places of attraction. On the other end, flats in towns like Choa Chu Kang, Bukit Panjang, Sembawang, Yishun and Pasir Ris are more affordable with median prices of around \$400K.
 
-### Distribution of Price by Remaining Lease Years (marcus)
+### Distribution of Price by Remaining Lease Years 
 
 As HDB units is a form of public housing, all HDB units sold to Singaporeans have a 99 year lease attached to them. Once the period of the lease is up, the unit must be returned to the government without compensation (ie, its value will be 0 when the lease hits 0 years).
 
@@ -452,28 +476,21 @@ remaining_lease_summary_stats <- clean_resale_data %>%
 remaining_lease_summary_stats
 ```
 
-Scatter plot
-
+Let us begin by plotting the resale price against the remaining lease
 ```{r}
-#grouped_remaining_lease <- clean_resale_data %>%
-#  group_by(remaining_lease) %>%
-#  summarize(avg_price = mean(resale_price, na.rm = TRUE))
-
-#ggplot(grouped_remaining_lease, aes(x = remaining_lease, y = avg_price)) +
-#  geom_line() +
-#  scale_y_continuous(labels = scales::comma) +
-#  labs(title = "Average Price vs Remaining Lease", x = "Remaining Lease", y = "Resale Price")
-
 ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
   geom_smooth() +
-  labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
+  labs(title = "Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
 
-#This data is too dirty. In order to ensure that we see a clearer relationship between the price and the remaining lease, let's only use data from 2017.
+From this scatter plot, we noticed that the data is too noisy and no clear trend can be determined. One reason for this is that the data we use ranges over many years and, as seen above, the resale price varies drastically over the years. Thus, let us only consider more recent resale data, from 2020 onwards.
 
 ```{r}
-remaining_lease_summary_stats_2017 <- clean_resale_data_2017 %>%
+clean_resale_data_2020_onwards <- clean_resale_data %>%
+  filter(year(month) >= 2020)
+
+remaining_lease_summary_stats_2020_onwards <- clean_resale_data_2020_onwards %>%
   group_by(remaining_lease) %>%
   summarize(
     Mean_Price = mean(resale_price),
@@ -481,33 +498,42 @@ remaining_lease_summary_stats_2017 <- clean_resale_data_2017 %>%
     Min_Price = min(resale_price),
     Max_Price = max(resale_price)
   )
-remaining_lease_summary_stats_2017
+remaining_lease_summary_stats_2020_onwards
 ```
-
-Scatter plot
 
 ```{r}
-ggplot(clean_resale_data_2017, aes(x = remaining_lease, y = resale_price)) +
+ggplot(clean_resale_data_2020_onwards, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
   geom_smooth() +
-  labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
+  labs(title = "Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
+Filtering the data to analyse only those within a shorter time period gave us a much clearer trend regarding the relationship between remaining lease and resale price.
+In general, we see that the resale price decreases as the remaining lease decreases. 
+However, we notice that there is a noticeable rise in resale price as the remaining lease falls from around 92 to 87 years. One reason for this is that HDB flats with over 90 years of lease would be rather new and thus more likely to be located in new towns. As these new towns mature, they become more attractive places to live in, resulting in the rise in resale price that we see. 
 
 Using a regression model,
 
 ```{r}
-lm_model_2017 <- lm(resale_price ~ remaining_lease, data = clean_resale_data_2017)
+lm_model_2020 <- lm(resale_price ~ remaining_lease, data = clean_resale_data_2020_onwards)
 
 # Summary of the regression model
-summary(lm_model_2017)
+summary(lm_model_2020)
 ```
 
 Visualizing the regression line, #remove
 
 ```{r}
-ggplot(clean_resale_data_2017, aes(x = remaining_lease, y = resale_price)) +
+ggplot(clean_resale_data_2020_onwards, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Regression Line: Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
+```
+logistic regression
+```{r}
+
+ggplot(clean_resale_data_2020_onwards, aes(x = remaining_lease, y = resale_price)) +
+  geom_point() +
+  stat_smooth(method="glm", color="green", se=FALSE) +
   labs(title = "Regression Line: Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
 
@@ -558,6 +584,7 @@ Price prediction using ggtrendline ##not working, cant combine
 ```{r}
 library(ggtrendline)
 ggtrendline(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale_price, model = "line3P")
+
 ggplot(clean_resale_data_2017_00, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
@@ -627,15 +654,16 @@ ggplot(df, aes(x = remaining_lease, y = resale_price)) +
   labs(title = "Nonlinear Best-Fit Line", x = "Remaining Lease", y = "Resale Price")
 ```
 
-### Distribution of Price by Storey range of flat (marcus)
+### Distribution of Price by Storey range of flat
 
 Let's also explore how the storey of the unit affects the price
-
 ```{r}
 # Since there are too many storeys to display on a barplot, let's create bins
 bin_width <- 10 
 clean_resale_data_bins <- clean_resale_data %>%
   mutate(storey_bin = cut(avg_storey, breaks = seq(0, max(avg_storey), by = bin_width), right = FALSE))
+
+clean_resale_data_bins <- filter(clean_resale_data_bins, !is.na(storey_bin)) 
 
 storey_bin_summary_stats <- clean_resale_data_bins %>%
   group_by(storey_bin) %>%
@@ -678,11 +706,182 @@ ggplot(clean_resale_data_bins, aes(x = resale_price)) +
 
 ## Modelling and Prediction of future HDB Resale Prices (xf)
 
--   Linear regression for 2 variables
+To simplify the linear regression model, we remove some of the variables from the clean_resale_data dataset.
+```{r}
+clean_resale_data_xf <- clean_resale_data[, !colnames(clean_resale_data) %in% c("block", "street_name", "storey_min", "storey_max", "storey_range", "lease_commence_date")]
+colnames(clean_resale_data_xf)
+```
 
--   Linear regression for all variables
+Here we split the entire dataset clean_resale_data into both training data (90% data) and test data (10% data).
+```{r}
+set.seed(123)
+train_proportion <- 0.9
+total_rows <- nrow(clean_resale_data)
+train_size <- round(train_proportion * total_rows)
+test_size <- total_rows - train_size
+sample_index <- sample(1:total_rows, total_rows)
+train_data <- clean_resale_data[sample_index[1:train_size], ]
+test_data <- clean_resale_data[sample_index[(train_size + 1):total_rows], ]
 
-\
+summary(train_data)
+
+```
+```{r}
+clean_resale_data$month <- as.numeric(as.Date(clean_resale_data$month))
+```
+
+Next we create a linear regression model with 2 input variables - town and flat_type.
+```{r}
+lm_model_twov <- lm(resale_price ~ town + flat_type, data = train_data)
+summary(lm_model_twov)
+
+```
+
+We test the accuracy of the linear regression model using test_data:
+```{r}
+predictions <- predict(lm_model_twov, newdata = test_data)
+actual_values <- test_data$resale_price
+mae <- mean(abs(predictions - actual_values))
+mse <- mean((predictions - actual_values)^2)
+rmse <- sqrt(mse)
+cat("Mean Absolute Error (MAE): ", mae, "\n")
+cat("Mean Squared Error (MSE): ", mse, "\n")
+cat("Root Mean Squared Error (RMSE): ", rmse, "\n")
+
+```
+
+```{r}
+# Try the 2 variable linear regression using 2 continuous variables
+lm_model_twov2 <- lm(resale_price ~  floor_area_sqm + remaining_lease, data = train_data)
+summary(lm_model_twov2)
+```
+```{r}
+predictions <- predict(lm_model_twov2, newdata = test_data)
+actual_values <- test_data$resale_price
+mae <- mean(abs(predictions - actual_values))
+mse <- mean((predictions - actual_values)^2)
+rmse <- sqrt(mse)
+cat("Mean Absolute Error (MAE): ", mae, "\n")
+cat("Mean Squared Error (MSE): ", mse, "\n")
+cat("Root Mean Squared Error (RMSE): ", rmse, "\n")
+```
+
+
+Next, we train the linear regression model using all the variables. 
+```{r}
+lm_model_allv <- lm(resale_price ~ month + town + flat_type + floor_area_sqm + remaining_lease + avg_storey, data = train_data)
+summary(lm_model_allv)
+```
+
+We test the accuracy of this model:
+```{r}
+predictions <- predict(lm_model_allv, newdata = test_data)
+actual_values <- test_data$resale_price
+mae <- mean(abs(predictions - actual_values))
+mse <- mean((predictions - actual_values)^2)
+rmse <- sqrt(mse)
+cat("Mean Absolute Error (MAE): ", mae, "\n")
+cat("Mean Squared Error (MSE): ", mse, "\n")
+cat("Root Mean Squared Error (RMSE): ", rmse, "\n")
+```
+```{r}
+colnames(clean_resale_data)
+str(clean_resale_data)
+```
+
+
+
+
+
+
+
+
+K Nearest Neighbour
+```{r}
+# Convert the discreet variables into factors
+clean_resale_data$town <- as.factor(clean_resale_data$town)
+clean_resale_data$flat_type <- as.factor(clean_resale_data$flat_type)
+
+# Convert the 'month' variable which is a Date class to numeric:
+clean_resale_data$month <- as.numeric(as.Date(clean_resale_data$month))
+str(clean_resale_data)
+
+# Scale the continuous (numeric) variables
+clean_resale_data$floor_area_sqm <- scale(clean_resale_data$floor_area_sqm)
+clean_resale_data$resale_price <- scale(clean_resale_data$resale_price)
+clean_resale_data$remaining_lease <- scale(clean_resale_data$remaining_lease)
+clean_resale_data$avg_storey <- scale(clean_resale_data$avg_storey)
+clean_resale_data$month <- scale(clean_resale_data$month)
+
+# Split the dataset into training and testing set 
+set.seed(123)
+total_rows <- nrow(clean_resale_data)
+train_size <- round(0.9 * total_rows)  # 90% of the data goes to the training set
+test_size <- total_rows - train_size   # Rest of the data goes to the test set
+train_indices <- sample(1:total_rows, train_size)
+train_data <- clean_resale_data[train_indices, ]
+test_data <- clean_resale_data[-train_indices, ]
+
+#predictors <- c('town', 'flat_type', 'floor_area_sqm', 'remaining_lease', 'avg_storey','month') 
+predictors <- c('floor_area_sqm', 'remaining_lease', 'avg_storey','month') 
+target <- 'resale_price' 
+
+# Train the KNN model
+knn_model <- knn(train = train_data[, predictors], test = test_data[, predictors], cl = train_data[, target], k = 1)
+
+# Test the test data set
+
+predictions <- knn_model
+
+# Extract the actual target values from the test dataset
+actual_values <- test_data[, ]
+
+# Calculate RMSE
+rmse <- sqrt(mean((predictions - actual_values)^2))
+
+# Print RMSE
+print(paste("Root Mean Squared Error (RMSE):", rmse))
+
+
+#print(unique(clean_resale_data$month))
+#summary(clean_resale_data)
+print(sum(is.na(clean_resale_data$month)))
+print(sum(is.na(clean_resale_data$floor_area_sqm)))
+print(sum(is.na(clean_resale_data$resale_price)))
+print(sum(is.na(clean_resale_data$remaining_lease)))
+print(sum(is.na(clean_resale_data$avg_storey)))
+print(sum(is.na(clean_resale_data$town)))
+print(sum(is.na(clean_resale_data$flat_type)))
+
+any(is.infinite(clean_resale_data$remaining_lease))
+any(is.infinite(clean_resale_data$avg_storey))
+any(is.infinite(clean_resale_data$month))
+any(is.infinite(clean_resale_data$floor_area_sqm))
+any(is.infinite(clean_resale_data$resale_price))
+any(is.infinite(clean_resale_data$town))
+any(is.infinite(clean_resale_data$flat_type))
+
+dim(train_data[, predictors])
+dim(test_data[, predictors])
+dim(train_data[, target])
+
+
+#knn_model <- knn(train = train_data[, predictors], test = test_data[, predictors], cl = train_data[, target], k = 3)
+```
+```{r}
+str(clean_resale_data)
+```
+
+
+```{r}
+library(caret)
+library(class)
+
+# Convert discreet variables into factors
+train_data$discrete_var <- as.factor(train_data$discrete_var)
+
+```
+
 
 ## How BTO Buyers can maximise returns (KIV)
 
