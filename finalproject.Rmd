@@ -170,7 +170,7 @@ ggplot(grouped_clean_resale_data, aes(x = month, y = avg_price)) +
 ```
 We can see that there is a general rise in resale prices of HDB flats over time. The fall in prices observed in 1997 could be due to the asian financial crisis which negatively impacted the Singapore economy. The fall in prices in 2013 could be due to the introduction of cooling measures by the Singapore government. These included policies such as reducing the mortgage servicing ratio, the maximum loan term, and the eligibility of permanent residents to buy resale flats.
 
-### Distribution of Price by Flat Type (marcus)
+### Distribution of Price by Flat Type
 
 We can also analyse the data to determine the prices of the different types of HDB flats.
 
@@ -271,6 +271,17 @@ ggplot(clean_resale_data_2022, aes(x = resale_price)) +
 
 ```
 ?????????Comparing the above three plots for 2022 against their corresponding plots for the entire time period, we see that there
+
+Let's also analyse how the resale prices of the various flat types changed over time
+```{r}
+ggplot() +
+  geom_smooth(data = clean_resale_data, aes(x = month, y = resale_price, color=flat_type)) +
+  scale_y_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_blank()) +
+  labs(title = "Resale Price Over Time for Various Flat Types", x = "Time", y = "Resale Price")
+```
+We can see that each town generally follows the overall trend of Singapore's HDB resale prices. The data for Multi-Generation flats have greater fluctuations and variance but that is likely due to the much lower data points regarding Multi-Generation Flat sales due to its rarity.
+
 
 ### Distribution of Price by Town 
 
@@ -426,6 +437,14 @@ ggplot() +
   labs(title = "Resale Price Over Time for Various Towns", x = "Time", y = "Resale Price")
 ```
 
+```{r fig.width=10, fig.height=6}
+ggplot() +
+  geom_smooth(data = clean_resale_data, aes(x = month, y = resale_price, color=town)) +
+  scale_y_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_blank()) +
+  labs(title = "Resale Price Over Time for Various Towns", x = "Time", y = "Resale Price")
+```
+
 We can see that each town generally follows the overall trend of Singapore's HDB resale prices: with a steady increase over time but with periodic ups and downs in property prices. It can be noted that the peak and trendline for property prices typically trail those for the number of transactions by 1-2 years, shedding light on Singapore's property market behavior.
 
 There is a lack of data for Lim Chu Kang town because in Lim Chu Kang, there was only a small public housing area known as Neo Tiew Estate (or Lim Chu Kang Rural Centre). The whole area was en-bloc in 2002, with the residents shifted to Jurong West. The estate was vacated since then, and is currently used for FIBUA (Fighting in Built-Up Areas) trainings by the Singapore Armed Forces (SAF). Hence, there is little to no transactions happening in Lim Chu Kang.
@@ -484,7 +503,7 @@ ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
   labs(title = "Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
 
-From this scatter plot, we noticed that the data is too noisy and no clear trend can be determined. One reason for this is that the data we use ranges over many years and, as seen above, the resale price varies drastically over the years. Thus, let us only consider more recent resale data, from 2020 onwards.
+From this scatter plot, we noticed that the data is rather noisy and no clear trend can be determined. One reason for this is that the data we use ranges over many years and, as seen above, the resale price varies drastically over the years. Thus, let us only consider more recent resale data, from 2020 onwards.
 
 ```{r}
 clean_resale_data_2020_onwards <- clean_resale_data %>%
@@ -507,9 +526,9 @@ ggplot(clean_resale_data_2020_onwards, aes(x = remaining_lease, y = resale_price
   geom_smooth() +
   labs(title = "Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
-Filtering the data to analyse only those within a shorter time period gave us a much clearer trend regarding the relationship between remaining lease and resale price.
-In general, we see that the resale price decreases as the remaining lease decreases. 
-However, we notice that there is a noticeable rise in resale price as the remaining lease falls from around 92 to 87 years. One reason for this is that HDB flats with over 90 years of lease would be rather new and thus more likely to be located in new towns. As these new towns mature, they become more attractive places to live in, resulting in the rise in resale price that we see. 
+Filtering the data to analyse only those within a shorter time period gave us a slightly clearer trend regarding the relationship between remaining lease and resale price.
+
+In general, we see that the resale price decreases as the remaining lease decreases. However, we notice that there is a noticeable rise in resale price as the remaining lease falls from around 92 to 87 years. One reason for this is that HDB flats with over 90 years of lease would be rather new and thus more likely to be located in new towns. As these new towns mature, they become more attractive places to live in, resulting in the rise in resale price that we see. 
 
 Using a regression model,
 
@@ -676,7 +695,7 @@ storey_bin_summary_stats <- clean_resale_data_bins %>%
 storey_bin_summary_stats 
 ```
 
-Visualising using Box Plot, ##remove NA
+Visualising using Box Plot,
 
 ```{r}
 ggplot(clean_resale_data_bins, aes(x = storey_bin, y = resale_price)) +
@@ -694,15 +713,36 @@ ggplot(storey_bin_summary_stats, aes(x = storey_bin, y = Mean_Price)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Visualising using a histogram,
+Visualizing using a histogram,
 
 ```{r}
 ggplot(clean_resale_data_bins, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
   facet_wrap(~storey_bin, scales = "free") +
-  labs(title = "Price Distribution by Storey Range", x = "Resale Price (SGD)")
+  labs(title = "Price Distribution by Storey Range", x = "Resale Price (SGD)") +
+  scale_x_continuous(labels = scales::comma)
 
 ```
+From the above, we can see that there is a general increase in prices for the higher flat units. Looking at the box plot, we can see that there are more outlying data points for the lower storey units. This might indicate that the storey of a unit might not be a very important factor in the resale price as other factors such as location might cause a unit with low storey to be priced highly.
+
+```{r}
+ggplot(clean_resale_data, aes(x = month, y = avg_storey)) +
+  geom_point() +
+  labs(title = "Storey vs. Time", x = "Time", y = "Storey")
+```
+
+Furthermore, we must also take note that units with higher storeys typically belong to newer buildings and only have data from more recent years(as seen above) where housing prices are higher. To isolate these other factors to better determine the relationship between storey and resale price, We can filter to only look at recent sales data (2020 onwards) and only look at new HDB units (with 85 or more years of lease remaining).
+
+```{r}
+clean_resale_data_bins_2020_onward_new <- clean_resale_data_bins %>%
+  filter(year(month) >= 2020 & remaining_lease >= 85)
+
+ggplot(clean_resale_data_bins_2020_onward_new, aes(x = storey_bin, y = resale_price)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Prices by Storey Range", y = "Resale Price (SGD)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Isolating these factors reduced the average price difference between the higher storey units and lower storey units. However, the trend that the resale price increases with storey still holds.
 
 ## Modelling and Prediction of future HDB Resale Prices (xf)
 
