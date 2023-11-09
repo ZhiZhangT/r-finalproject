@@ -845,113 +845,53 @@ cat("Mean Absolute Error (MAE): ", mae, "\n")
 cat("Mean Squared Error (MSE): ", mse, "\n")
 cat("Root Mean Squared Error (RMSE): ", rmse, "\n")
 ```
-
-Let us now train a logistic regression model using the same train_data
+Now we will use the train_data to train a logistic regression model. We first normalize the output variable 'resale_price'
 ```{r}
-# Define a function for polynomial regression
-poly_reg <- function(data, response) {
-  predictors <- setdiff(names(data), response)
-  formula <- as.formula(paste(response, "~ poly(", paste(predictors, collapse = ", "), ", degree = 2)"))
-  model <- lm(formula, data = data)
-  return(summary(model))
-}
-
-# Use the function
-model_summary <- poly_reg(train_data, "resale_price")
-
+train_data$resale_price <- (train_data$resale_price - min(train_data$resale_price)) / 
+                          (max(train_data$resale_price) - min(train_data$resale_price))
+test_data$resale_price <- (test_data$resale_price - min(test_data$resale_price)) / 
+                          (max(test_data$resale_price) - min(test_data$resale_price))
+logistic_model <- glm(resale_price ~ ., data = train_data, family = binomial)
+summary(logistic_model)
 ```
 
-
-
-
-
-
-
-K Nearest Neighbour
+Now we test the model with test_data
 ```{r}
-# Convert the discreet variables into factors
-clean_resale_data$town <- as.factor(clean_resale_data$town)
-clean_resale_data$flat_type <- as.factor(clean_resale_data$flat_type)
+# Assuming 'test_data' is your test data frame and 'resale_price' is your binary outcome variable
 
-# Convert the 'month' variable which is a Date class to numeric:
-clean_resale_data$month <- as.numeric(as.Date(clean_resale_data$month))
-str(clean_resale_data)
+predictions <- predict(logistic_model, newdata = test_data, type = "response")
+class_predictions <- ifelse(predictions > 0.5, 1, 0)
+errors <- class_predictions - test_data$resale_price
+mae <- mean(abs(errors))
+mse <- mean(errors^2)
+rmse <- sqrt(mse)
 
-# Scale the continuous (numeric) variables
-clean_resale_data$floor_area_sqm <- scale(clean_resale_data$floor_area_sqm)
-clean_resale_data$resale_price <- scale(clean_resale_data$resale_price)
-clean_resale_data$remaining_lease <- scale(clean_resale_data$remaining_lease)
-clean_resale_data$avg_storey <- scale(clean_resale_data$avg_storey)
-clean_resale_data$month <- scale(clean_resale_data$month)
-
-# Split the dataset into training and testing set 
-set.seed(123)
-total_rows <- nrow(clean_resale_data)
-train_size <- round(0.9 * total_rows)  # 90% of the data goes to the training set
-test_size <- total_rows - train_size   # Rest of the data goes to the test set
-train_indices <- sample(1:total_rows, train_size)
-train_data <- clean_resale_data[train_indices, ]
-test_data <- clean_resale_data[-train_indices, ]
-
-#predictors <- c('town', 'flat_type', 'floor_area_sqm', 'remaining_lease', 'avg_storey','month') 
-predictors <- c('floor_area_sqm', 'remaining_lease', 'avg_storey','month') 
-target <- 'resale_price' 
-
-# Train the KNN model
-knn_model <- knn(train = train_data[, predictors], test = test_data[, predictors], cl = train_data[, target], k = 1)
-
-# Test the test data set
-
-predictions <- knn_model
-
-# Extract the actual target values from the test dataset
-actual_values <- test_data[, ]
-
-# Calculate RMSE
-rmse <- sqrt(mean((predictions - actual_values)^2))
-
-# Print RMSE
-print(paste("Root Mean Squared Error (RMSE):", rmse))
-
-
-#print(unique(clean_resale_data$month))
-#summary(clean_resale_data)
-print(sum(is.na(clean_resale_data$month)))
-print(sum(is.na(clean_resale_data$floor_area_sqm)))
-print(sum(is.na(clean_resale_data$resale_price)))
-print(sum(is.na(clean_resale_data$remaining_lease)))
-print(sum(is.na(clean_resale_data$avg_storey)))
-print(sum(is.na(clean_resale_data$town)))
-print(sum(is.na(clean_resale_data$flat_type)))
-
-any(is.infinite(clean_resale_data$remaining_lease))
-any(is.infinite(clean_resale_data$avg_storey))
-any(is.infinite(clean_resale_data$month))
-any(is.infinite(clean_resale_data$floor_area_sqm))
-any(is.infinite(clean_resale_data$resale_price))
-any(is.infinite(clean_resale_data$town))
-any(is.infinite(clean_resale_data$flat_type))
-
-dim(train_data[, predictors])
-dim(test_data[, predictors])
-dim(train_data[, target])
-
-
-#knn_model <- knn(train = train_data[, predictors], test = test_data[, predictors], cl = train_data[, target], k = 3)
+print(paste("Mean Absolute Error: ", mae))
+print(paste("Mean Squared Error: ", mse))
+print(paste("Root Mean Squared Error: ", rmse))
 ```
+We now scale up the mean absolute error data from the normalised value of 0.2
 ```{r}
-str(clean_resale_data)
+min_value <- min(clean_resale_data$resale_price)
+max_value <- max(clean_resale_data$resale_price)
+mean_absolute_error_logistical <- (0.205*(max_value-min_value))
+mean_absolute_error_logistical
 ```
 
+Comparing between the mean absolute error of the linear regression model and the logistic regression model, we find that the linear regression and logistical regression model have errors of 54000 and 306000 respectively. The linear regression model performs much better than the logistic regression model likely due to a few reasons:
 
-```{r}
-library(caret)
-library(class)
+1. Linear regression is designed to predict a continuous outcome variable, while logistic regression is     designed to predict a binary outcome variable. If resale_price is a continuous variable, then it’s more appropriate to use linear regression. Using logistic regression to predict a continuous variable requires transforming the variable into a binary one, which can lead to loss of information.
 
-# Convert discreet variables into factors
-train_data$discrete_var <- as.factor(train_data$discrete_var)
+2. Linear regression assumes a linear relationship between the independent and dependent variables, while logistic regression does not. If the true relationship is linear, then linear regression will likely perform better.
 
-```
+3. Logistic regression, especially with many predictor variables, can sometimes overfit the training data, leading to poor performance on the test data.
+
+4. Mean absolute error (MAE) is a common error metric for regression problems, but it might not be the most appropriate metric for a classification problem like the one solved by logistic regression. For classification problems, other metrics like accuracy, precision, recall, or area under the ROC curve might be more informative.
+
+
+
+
+
 
 
 ## How BTO Buyers can maximise returns (KIV)
@@ -1086,6 +1026,20 @@ view(profit_over_years)
 ```{r}
 profit_over_years %>%
   select(-town, -financial_year, -room_type, -min_selling_price_less_ahg_shg, -max_selling_price, -min_selling_price, -max_selling_price_less_ahg_shg, -n, -town_upper, -flat_type, -room_type, -mean_purchase_price)
+  
+```
+
+Cleaning data,
+```{r}
+profit_over_years_clean <- profit_over_years %>% 
+  select(-financial_year) %>% 
+  select(-min_selling_price) %>%
+  select(-max_selling_price) %>% 
+  select(-min_selling_price_less_ahg_shg) %>%
+  select(-max_selling_price_less_ahg_shg) %>%
+  select(-n) %>%
+  select(-flat_type) %>%
+  select(-room_type)
   
 ```
 
