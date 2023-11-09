@@ -2,7 +2,9 @@
 title: "finalgroupproject"
 author: "Tee Zhi Zhang"
 date: "2023-11-01"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -186,7 +188,7 @@ summary_stats <- clean_resale_data %>%
 summary_stats
 ```
 
-Visualising using Box Plot,
+Visualizing using Box Plot,
 
 ```{r}
 ggplot(clean_resale_data, aes(x = flat_type, y = resale_price)) +
@@ -205,7 +207,6 @@ ggplot(summary_stats, aes(x = flat_type, y = Mean_Price)) +
   scale_y_continuous(labels = scales::comma)
 
 ```
-We also do notice a general increase in the mean prices as the flat type gets better.
 
 Visualizing using Histogram,
 ```{r}
@@ -213,14 +214,15 @@ ggplot(clean_resale_data, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
   facet_wrap(~flat_type, scales = "free") +
   labs(title = "Price Distribution by Flat Type", x = "Resale Price (SGD)", x = "flat type") +
-  scale_x_continuous(labels = scales::comma)
+  scale_x_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
 Looking at the above histogram, we notice an anomaly in the price distribution of 2 room flats, with two peaks at around SGD 120,000 and SGD 250,000. Upon further research, we found out that two room flats come in two types: Type 1 and Type 2. The  more affordable type 1 flats are generally catered towards lower income households. This separation between type 1 and 2 two room flats is not delineated in our dataset. 
 https://www.hdb.gov.sg/cs/infoweb/-/media/doc/CCG/04022021-BTO-Annexes/Annex-A2-Feb-2021-BTO.pdf 
 
 
-As noticed in the time-series analysis, the prices of HDB flats changed greatly over time. It might thus be more useful to compare the price of various flat types over a shorter time frame. We chose data from 2022 for this as this is the latest full-year-data we have.
+As noticed in the time-series analysis, the prices of HDB flats changed greatly over time. Let's compare the price of various flat types over a shorter time frame to see if the above observation holds. We chose data from 2022 for this as this is the latest full-year-data we have.
 
 ```{r}
 clean_resale_data_2022 <- clean_resale_data %>%
@@ -267,10 +269,11 @@ ggplot(clean_resale_data_2022, aes(x = resale_price)) +
   geom_histogram(binwidth = 50000, fill = "green", color = "black") +
   facet_wrap(~flat_type, scales = "free") +
   labs(title = "Price Distribution by Flat Type", x = "Resale Price (SGD)", x = "flat type") +
-  scale_x_continuous(labels = scales::comma)
+  scale_x_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
-?????????Comparing the above three plots for 2022 against their corresponding plots for the entire time period, we see that there
+Comparing the above three plots for 2022 against their corresponding plots for the entire time period, we see that the overall trends are very similar. 
 
 Let's also analyse how the resale prices of the various flat types changed over time
 ```{r}
@@ -281,6 +284,28 @@ ggplot() +
   labs(title = "Resale Price Over Time for Various Flat Types", x = "Time", y = "Resale Price")
 ```
 We can see that each town generally follows the overall trend of Singapore's HDB resale prices. The data for Multi-Generation flats have greater fluctuations and variance but that is likely due to the much lower data points regarding Multi-Generation Flat sales due to its rarity.
+
+### Resale Price vs Area
+
+Let's analyse how the resale price relates to floor area. As the resale price is heavily affected by the year of sale, we shall only use data from 2022 as this is the latest year with full data. 
+```{r}
+ggplot(data = clean_resale_data_2022, aes(x=floor_area_sqm, y=resale_price)) +
+  geom_point() +
+  geom_smooth() +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title = "Resale Price Over Area", x = "Floor Area (sqm)", y = "Resale Price")
+
+```
+Looking at the graph, we can see a rather linear relationship between Resale Price and Floor Area.
+
+As the resale price is also affected by the town, let's explore how the various towns differ
+```{r}
+ggplot(data = clean_resale_data_2022, aes(x=floor_area_sqm, y=resale_price, color=town)) +
+  geom_smooth(method = "lm") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title = "Resale Price Over Area", x = "Floor Area (sqm)", y = "Resale Price")
+
+```
 
 
 ### Distribution of Price by Town 
@@ -477,6 +502,78 @@ Here, we can get a bird's eye view of the relative pricing of each town's HDB pr
 
 You would have to pay a premium for flats in towns like Bishan, Bukit Merah, Bukit Timah, Central Area, Queenstown and Toa Payoh with median prices of around \$750K; primarily due to their locations and proximity to workplaces and places of attraction. On the other end, flats in towns like Choa Chu Kang, Bukit Panjang, Sembawang, Yishun and Pasir Ris are more affordable with median prices of around \$400K.
 
+### Distribution of Price by Storey range of flat
+
+Let's also explore how the storey of the unit affects the price
+```{r}
+# Since there are too many storeys to display on a barplot, let's create bins
+bin_width <- 10 
+clean_resale_data_bins <- clean_resale_data %>%
+  mutate(storey_bin = cut(avg_storey, breaks = seq(0, max(avg_storey), by = bin_width), right = FALSE))
+
+clean_resale_data_bins <- filter(clean_resale_data_bins, !is.na(storey_bin)) 
+
+storey_bin_summary_stats <- clean_resale_data_bins %>%
+  group_by(storey_bin) %>%
+  summarize(
+    Mean_Price = mean(resale_price),
+    Median_Price = median(resale_price),
+    Min_Price = min(resale_price),
+    Max_Price = max(resale_price)
+  )
+storey_bin_summary_stats 
+```
+
+Visualizing using Box Plot,
+
+```{r}
+ggplot(clean_resale_data_bins, aes(x = storey_bin, y = resale_price)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Prices by Storey Range", y = "Resale Price (SGD)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Visualising using a barplot,
+
+```{r}
+ggplot(storey_bin_summary_stats, aes(x = storey_bin, y = Mean_Price)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Average Price by Storey Range", x = "Storey Range", y = "Average Resale Price (SGD)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Visualizing using a histogram,
+
+```{r}
+ggplot(clean_resale_data_bins, aes(x = resale_price)) +
+  geom_histogram(binwidth = 50000, fill = "green", color = "black") +
+  facet_wrap(~storey_bin, scales = "free") +
+  labs(title = "Price Distribution by Storey Range", x = "Resale Price (SGD)") +
+  scale_x_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+From the above, we can see that there is a general increase in prices for the higher flat units. Looking at the box plot, we can see that there are more outlying data points for the lower storey units. This might indicate that the storey of a unit might not be a very important factor in the resale price as other factors such as location might cause a unit with low storey to be priced highly.
+
+```{r}
+ggplot(clean_resale_data, aes(x = month, y = avg_storey)) +
+  geom_point() +
+  labs(title = "Storey vs. Time", x = "Time", y = "Storey")
+```
+
+Furthermore, we must also take note that units with higher storeys typically belong to newer buildings and only have data from more recent years(as seen above) where housing prices are higher. To isolate these other factors to better determine the relationship between storey and resale price, We can filter to only look at recent sales data (2020 onwards) and only look at new HDB units (with 85 or more years of lease remaining).
+
+```{r}
+clean_resale_data_bins_2020_onward_new <- clean_resale_data_bins %>%
+  filter(year(month) >= 2020 & remaining_lease >= 85)
+
+ggplot(clean_resale_data_bins_2020_onward_new, aes(x = storey_bin, y = resale_price)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Prices by Storey Range", y = "Resale Price (SGD)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Isolating these factors reduced the average price difference between the higher storey units and lower storey units. However, the trend that the resale price increases with storey still holds.
+
 ### Distribution of Price by Remaining Lease Years 
 
 As HDB units is a form of public housing, all HDB units sold to Singaporeans have a 99 year lease attached to them. Once the period of the lease is up, the unit must be returned to the government without compensation (ie, its value will be 0 when the lease hits 0 years).
@@ -502,8 +599,9 @@ ggplot(clean_resale_data, aes(x = remaining_lease, y = resale_price)) +
   geom_smooth() +
   labs(title = "Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
 ```
+From this scatter plot, we do not observe a clear trend. This is because aside from remaining lease, there are many other factors that affect the resale price.
 
-From this scatter plot, we noticed that the data is rather noisy and no clear trend can be determined. One reason for this is that the data we use ranges over many years and, as seen above, the resale price varies drastically over the years. Thus, let us only consider more recent resale data, from 2020 onwards.
+Thus, let us only consider more recent resale data, from 2020 onwards.
 
 ```{r}
 clean_resale_data_2020_onwards <- clean_resale_data %>%
@@ -530,222 +628,77 @@ Filtering the data to analyse only those within a shorter time period gave us a 
 
 In general, we see that the resale price decreases as the remaining lease decreases. However, we notice that there is a noticeable rise in resale price as the remaining lease falls from around 92 to 87 years. One reason for this is that HDB flats with over 90 years of lease would be rather new and thus more likely to be located in new towns. As these new towns mature, they become more attractive places to live in, resulting in the rise in resale price that we see. 
 
-Using a regression model,
 
+Let's also look at how the variance of the resale price changes with Remaining Lease
 ```{r}
-lm_model_2020 <- lm(resale_price ~ remaining_lease, data = clean_resale_data_2020_onwards)
+var_price_per_year <- clean_resale_data %>%
+  group_by(remaining_lease) %>%
+  summarise(price_var = var(resale_price))
 
-# Summary of the regression model
-summary(lm_model_2020)
-```
-
-Visualizing the regression line, #remove
-
-```{r}
-ggplot(clean_resale_data_2020_onwards, aes(x = remaining_lease, y = resale_price)) +
+ggplot(var_price_per_year, aes(x = remaining_lease, y = price_var)) +
   geom_point() +
-  geom_smooth(method = "lm", se = FALSE, color = "blue") +
-  labs(title = "Regression Line: Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
+  geom_smooth() +
+  labs(title = "Variance of Resale Price vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price Variance")
 ```
-logistic regression
-```{r}
+From this, we can see that the variance of the resale price increases as the lease drops from 99 years to around 70 years. Thereafter, the variance decreases. 
 
-ggplot(clean_resale_data_2020_onwards, aes(x = remaining_lease, y = resale_price)) +
-  geom_point() +
-  stat_smooth(method="glm", color="green", se=FALSE) +
-  labs(title = "Regression Line: Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
-```
 
-We can see that there is a positive relationship between remaining lease and the resale price.
-
-### Predict the future price of HDB for Remaining lease years of less than 40 (or whatever the lowest remaining lease years is now)
-
+### Predict the future price of HDB for Remaining lease years of less than 42 years 
 From the sales data we are utilising, we can see that the lowest remaining lease value is 42 years. This is because it has only been around 60 years since the first HDB unit was sold. As such, til date, there has been no unit that was returned to the government. We know that the price of these units will be zero when the lease runs out. As such, one point of interest we can analyse would be whether this fact is taken into account by the resale market.
 
 Let's create an additional data point for when resale price = 0 when remaining lease = 0. We shall create a new weighted regression model with increased weight for the (0, 0) data point.
-
 ```{r}
 additional_point <- data.frame(
   remaining_lease = 0,
   resale_price = 0
 )
-clean_resale_data_2017_00 <- bind_rows(clean_resale_data_2017, additional_point)
+clean_resale_data_2020_onwards_00 <- bind_rows(clean_resale_data_2020_onwards, additional_point)
 
-weights <- ifelse(clean_resale_data_2017_00$remaining_lease == 0, 20509, 1)
+lm_model <- lm(resale_price ~ remaining_lease, data = clean_resale_data_2020_onwards_00)
 
-weighted_lm_model <- lm(resale_price ~ remaining_lease, data = clean_resale_data_2017_00, weights = weights)
+weights <- ifelse(clean_resale_data_2020_onwards_00$remaining_lease == 0, 20509, 1)
 
+weighted_lm_model <- lm(resale_price ~ remaining_lease, data = clean_resale_data_2020_onwards_00, weights = weights)
+
+summary(lm_model)
 summary(weighted_lm_model)
-
 ```
 
 Visualizing on scatter plot,
-
 ```{r}
 # Scatterplot of data
-plot(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale_price, pch = 19, col = "black", main = "Weighted Regression Line: Resale Prices vs. Remaining Lease", xlab = "Remaining Lease (Years)", ylab = "Resale Price (SGD)")
+plot(clean_resale_data_2020_onwards_00$remaining_lease, clean_resale_data_2020_onwards_00$resale_price, pch = 19, col = "black", main = "Weighted Regression Line: Resale Prices vs. Remaining Lease", xlab = "Remaining Lease (Years)", ylab = "Resale Price (SGD)")
+
+# Add the fitted line from the regression model
+abline(lm_model, col = "blue")
 
 # Add the fitted line from the regression model
 abline(weighted_lm_model, col = "red")
 ```
+In the above linear regression, that the trend based on current prices (blue line) has an R square value of 0.1158. This means that a linear model might not be a good estimate of the trend. 
+The red line take the fact that the price will be 0 when the remaining lease hits 0 into consideration. This has an R square value of 0.6347. 
 
-Price Prediction Data Using Locally estimated scatterplot smoothing,
+Since the linear regression model does not provide a good prediction of trend, we shall try a quadratic regression model.
 
-```{r}
-ggplot(clean_resale_data_2017_00, aes(x = remaining_lease, y = resale_price)) +
-  geom_point() +
-  geom_smooth(method = "loess") +
-  labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
-```
-
-Price prediction using ggtrendline ##not working, cant combine
-
+Price prediction using ggtrendline's quadratic regression function
 ```{r}
 library(ggtrendline)
-ggtrendline(clean_resale_data_2017_00$remaining_lease, clean_resale_data_2017_00$resale_price, model = "line3P")
-
-ggplot(clean_resale_data_2017_00, aes(x = remaining_lease, y = resale_price)) +
+ggtrendline(clean_resale_data_2020_onwards_00$remaining_lease, clean_resale_data_2020_onwards_00$resale_price, model = "line3P")
+```
+Plotting onto the same graph,
+```{r}
+eq = function(x){-160*x*x + 27747*x - 621382}
+ggplot(clean_resale_data_2020_onwards_00, aes(x = remaining_lease, y = resale_price)) +
   geom_point() +
+  stat_function(fun=eq)
   labs(title = "Scatterplot of Resale Prices vs. Remaining Lease", x = "Remaining Lease (Years)", y = "Resale Price (SGD)")
+  
 ```
+This quadratic regression model has a poor R squared value of 0.146, meaning that the relationship might not be quadratic as well. 
 
-Prediction of price trend using forecast, ##not working
-
-```{r}
-library(forecast)
-
-aggregated_data <- clean_resale_data_2017%>%
-  group_by(remaining_lease) %>%
-  summarize(avg_resale_price = mean(resale_price))
-
-# Convert data to time series
-ts_data <- ts(aggregated_data$avg_resale_price)
-
-# Fit an ARIMA model (replace with your model)
-arima_model <- auto.arima(ts_data)
-
-# Make forecasts for years 1 to 41
-forecast_values <- forecast(arima_model, h = 41)
-
-# Create a data frame for visualization
-df <- data.frame(
-  year = 48:96,
-  actual = c(0, aggregated_data$avg_resale_price),
-  forecast = forecast_values$mean
-)
-
-# Create a ggplot to visualize historical and forecasted data
-ggplot(df, aes(x = year, y = actual)) +
-  geom_line(aes(color = "Actual")) +
-  geom_line(aes(x = year, y = forecast, color = "Forecast")) +
-  labs(title = "Historical and Forecasted Price Trend", x = "Year", y = "Resale Price") +
-  scale_color_manual(values = c("Actual" = "blue", "Forecast" = "red"))
-
-```
-
-Predict trend using least square, ##ugly af, dk how fix
-
-```{r}
-
-additional_point <- data.frame(
-  remaining_lease = 0,
-  resale_price = 0
-)
-clean_resale_data_2017_00 <- bind_rows(clean_resale_data_2017, additional_point)
-
-# Define a nonlinear model (you need to choose an appropriate nonlinear function)
-polynomial_model <- lm(resale_price ~ remaining_lease + I(remaining_lease^2), 
-                      data = clean_resale_data_2017_00)
-
-# Make predictions with the nonlinear model
-predictions <- predict(polynomial_model, newdata = data.frame(remaining_lease = 1:99))
-
-# Create a data frame for visualization
-df <- data.frame(
-  remaining_lease = c(clean_resale_data_2017_00$remaining_lease, 1:99),
-  resale_price = c(clean_resale_data_2017_00$resale_price, predictions)
-)
-
-# Create a ggplot to visualize the data and nonlinear best-fit line
-ggplot(df, aes(x = remaining_lease, y = resale_price)) +
-  geom_point(data = clean_resale_data_2017_00, color = "blue") +
-  geom_smooth(data = df, aes(x = remaining_lease, y = resale_price), color = "red") +
-  labs(title = "Nonlinear Best-Fit Line", x = "Remaining Lease", y = "Resale Price")
-```
-
-### Distribution of Price by Storey range of flat
-
-Let's also explore how the storey of the unit affects the price
-```{r}
-# Since there are too many storeys to display on a barplot, let's create bins
-bin_width <- 10 
-clean_resale_data_bins <- clean_resale_data %>%
-  mutate(storey_bin = cut(avg_storey, breaks = seq(0, max(avg_storey), by = bin_width), right = FALSE))
-
-clean_resale_data_bins <- filter(clean_resale_data_bins, !is.na(storey_bin)) 
-
-storey_bin_summary_stats <- clean_resale_data_bins %>%
-  group_by(storey_bin) %>%
-  summarize(
-    Mean_Price = mean(resale_price),
-    Median_Price = median(resale_price),
-    Min_Price = min(resale_price),
-    Max_Price = max(resale_price)
-  )
-storey_bin_summary_stats 
-```
-
-Visualising using Box Plot,
-
-```{r}
-ggplot(clean_resale_data_bins, aes(x = storey_bin, y = resale_price)) +
-  geom_boxplot() +
-  labs(title = "Distribution of Prices by Storey Range", y = "Resale Price (SGD)") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-Visualising using a barplot,
-
-```{r}
-ggplot(storey_bin_summary_stats, aes(x = storey_bin, y = Mean_Price)) +
-  geom_bar(stat = "identity", fill = "blue") +
-  labs(title = "Average Price by Storey Range", x = "Storey Range", y = "Average Resale Price (SGD)") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-Visualizing using a histogram,
-
-```{r}
-ggplot(clean_resale_data_bins, aes(x = resale_price)) +
-  geom_histogram(binwidth = 50000, fill = "green", color = "black") +
-  facet_wrap(~storey_bin, scales = "free") +
-  labs(title = "Price Distribution by Storey Range", x = "Resale Price (SGD)") +
-  scale_x_continuous(labels = scales::comma)
-
-```
-From the above, we can see that there is a general increase in prices for the higher flat units. Looking at the box plot, we can see that there are more outlying data points for the lower storey units. This might indicate that the storey of a unit might not be a very important factor in the resale price as other factors such as location might cause a unit with low storey to be priced highly.
-
-```{r}
-ggplot(clean_resale_data, aes(x = month, y = avg_storey)) +
-  geom_point() +
-  labs(title = "Storey vs. Time", x = "Time", y = "Storey")
-```
-
-Furthermore, we must also take note that units with higher storeys typically belong to newer buildings and only have data from more recent years(as seen above) where housing prices are higher. To isolate these other factors to better determine the relationship between storey and resale price, We can filter to only look at recent sales data (2020 onwards) and only look at new HDB units (with 85 or more years of lease remaining).
-
-```{r}
-clean_resale_data_bins_2020_onward_new <- clean_resale_data_bins %>%
-  filter(year(month) >= 2020 & remaining_lease >= 85)
-
-ggplot(clean_resale_data_bins_2020_onward_new, aes(x = storey_bin, y = resale_price)) +
-  geom_boxplot() +
-  labs(title = "Distribution of Prices by Storey Range", y = "Resale Price (SGD)") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-Isolating these factors reduced the average price difference between the higher storey units and lower storey units. However, the trend that the resale price increases with storey still holds.
+Overall, as the resale price is affected by many other factors such as location and floor area, we might have to consider utilising multi-variable regression instead.
 
 ## Modelling and Prediction of future HDB Resale Prices (xf)
-
 To simplify the linear regression model, we remove some of the variables from the clean_resale_data dataset.
 ```{r}
 clean_resale_data_xf <- clean_resale_data[, !colnames(clean_resale_data) %in% c("block", "street_name", "storey_min", "storey_max", "storey_range", "lease_commence_date")]
