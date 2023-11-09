@@ -744,35 +744,75 @@ ggplot(clean_resale_data_bins_2020_onward_new, aes(x = storey_bin, y = resale_pr
 ```
 Isolating these factors reduced the average price difference between the higher storey units and lower storey units. However, the trend that the resale price increases with storey still holds.
 
+
+
+
+
+
+
+
 ## Modelling and Prediction of future HDB Resale Prices (xf)
+
+We duplicate the clean_resale_data so that we can clean up the data for linear regression while keeping the original file 
+```{r}
+duplicate_resale_data <- clean_resale_data
+```
 
 To simplify the linear regression model, we remove some of the variables from the clean_resale_data dataset.
 ```{r}
-clean_resale_data_xf <- clean_resale_data[, !colnames(clean_resale_data) %in% c("block", "street_name", "storey_min", "storey_max", "storey_range", "lease_commence_date")]
-colnames(clean_resale_data_xf)
+lm_resale_data <- duplicate_resale_data[, !colnames(duplicate_resale_data) %in% c("block", "street_name", "storey_min", "storey_max", "storey_range", "lease_commence_date")]
+colnames(lm_resale_data)
 ```
 
-Here we split the entire dataset clean_resale_data into both training data (90% data) and test data (10% data).
+We check the class of data within each column for duplicate_resale_data
+```{r}
+str(lm_resale_data)
+```
+We notice that 'town' and 'flat_type' are factors. We want to convert them into dummy variables for linear regression.
+```{r}
+# For 'town' variable
+town_dummy_var <- model.matrix(~town - 1, data = lm_resale_data)
+town_dummy_var_df <- as.data.frame(town_dummy_var)
+lm_resale_data <- cbind(lm_resale_data, town_dummy_var_df)
+
+# For 'flat_type' variable
+flat_type_dummy_var <- model.matrix(~flat_type - 1, data = lm_resale_data)
+flat_type_dummy_var_df <- as.data.frame(flat_type_dummy_var)
+lm_resale_data <- cbind(lm_resale_data, flat_type_dummy_var_df)
+
+lm_resale_data <- subset(lm_resale_data, select = -town)
+lm_resale_data <- subset(lm_resale_data, select = -flat_type)
+```
+
+We also need to conver the 'date' variable from character to numerical.
+```{r}
+# Assuming 'month_var' is your month variable
+lm_resale_data$month <- as.Date(paste(lm_resale_data$month, "-01", sep=""), format = "%Y-%m-%d")
+lm_resale_data$month <- as.numeric(lm_resale_data$month)
+```
+
+
+Now let us check the variables in the dataset 'lm_resale-data'
+```{r}
+str(lm_resale_data)
+```
+
+Here we split the entire data set lm_resale_data into both training data (90% data) and test data (10% data).
 ```{r}
 set.seed(123)
 train_proportion <- 0.9
-total_rows <- nrow(clean_resale_data)
+total_rows <- nrow(lm_resale_data)
 train_size <- round(train_proportion * total_rows)
 test_size <- total_rows - train_size
 sample_index <- sample(1:total_rows, total_rows)
-train_data <- clean_resale_data[sample_index[1:train_size], ]
-test_data <- clean_resale_data[sample_index[(train_size + 1):total_rows], ]
-
+train_data <- lm_resale_data[sample_index[1:train_size], ]
+test_data <- lm_resale_data[sample_index[(train_size + 1):total_rows], ]
 summary(train_data)
-
-```
-```{r}
-clean_resale_data$month <- as.numeric(as.Date(clean_resale_data$month))
 ```
 
 Next we create a linear regression model with 2 input variables - town and flat_type.
 ```{r}
-lm_model_twov <- lm(resale_price ~ town + flat_type, data = train_data)
+lm_model_twov <- lm(resale_price ~ floor_area_sqm + remaining_lease, data = train_data)
 summary(lm_model_twov)
 
 ```
@@ -789,28 +829,9 @@ cat("Mean Squared Error (MSE): ", mse, "\n")
 cat("Root Mean Squared Error (RMSE): ", rmse, "\n")
 
 ```
-
+Now let us create a machine learning model with all the variables. We first create a 
 ```{r}
-# Try the 2 variable linear regression using 2 continuous variables
-lm_model_twov2 <- lm(resale_price ~  floor_area_sqm + remaining_lease, data = train_data)
-summary(lm_model_twov2)
-```
-```{r}
-predictions <- predict(lm_model_twov2, newdata = test_data)
-actual_values <- test_data$resale_price
-mae <- mean(abs(predictions - actual_values))
-mse <- mean((predictions - actual_values)^2)
-rmse <- sqrt(mse)
-cat("Mean Absolute Error (MAE): ", mae, "\n")
-cat("Mean Squared Error (MSE): ", mse, "\n")
-cat("Root Mean Squared Error (RMSE): ", rmse, "\n")
-```
-
-
-Next, we train the linear regression model using all the variables. 
-```{r}
-lm_model_allv <- lm(resale_price ~ month + town + flat_type + floor_area_sqm + remaining_lease + avg_storey, data = train_data)
-summary(lm_model_allv)
+lm_model_allv <- lm(resale_price ~ . - resale_price, data = train_data)
 ```
 
 We test the accuracy of this model:
@@ -824,11 +845,21 @@ cat("Mean Absolute Error (MAE): ", mae, "\n")
 cat("Mean Squared Error (MSE): ", mse, "\n")
 cat("Root Mean Squared Error (RMSE): ", rmse, "\n")
 ```
-```{r}
-colnames(clean_resale_data)
-str(clean_resale_data)
-```
 
+Let us now train a logistic regression model using the same train_data
+```{r}
+# Define a function for polynomial regression
+poly_reg <- function(data, response) {
+  predictors <- setdiff(names(data), response)
+  formula <- as.formula(paste(response, "~ poly(", paste(predictors, collapse = ", "), ", degree = 2)"))
+  model <- lm(formula, data = data)
+  return(summary(model))
+}
+
+# Use the function
+model_summary <- poly_reg(train_data, "resale_price")
+
+```
 
 
 
